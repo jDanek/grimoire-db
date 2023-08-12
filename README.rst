@@ -8,7 +8,7 @@ Grimoire is a PHP library for simple working with data in the database. The most
 Requirements
 ************
 - PHP 7.1+
-- any database supported by PDO (tested with MySQL, SQLite, PostgreSQL, MS SQL, Oracle)
+- only MySQL database supported
 
 Usage
 *****
@@ -17,8 +17,8 @@ Usage
 
    <?php
 
-   $connection = new PDO("mysql:dbname=software");
-   $software = new Grimoire($connection);
+   $connection = new \Mysqli(...);
+   $software = new Grimoire\Database($connection);
 
    foreach ($software->application()->order("title") as $application) { // get all applications ordered by title
        echo "$application[title]\n"; // print application title
