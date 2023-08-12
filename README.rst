@@ -22,12 +22,10 @@ Usage
    $connection = new \Mysqli(...);
    $software = new Grimoire\Database($connection);
 
-   foreach ($software->application()->order("title") as $application) { // get all applications ordered by title
-       echo "$application[title]\n"; // print application title
-       echo $application->author["name"] . "\n"; // print name of the application author
-       foreach ($application->application_tag() as $application_tag) { // get all tags of $application
-           echo $application_tag->tag["name"] . "\n"; // print the tag name
+   foreach ($software->table('application')->order("title") as $application) { // get all applications ordered by title
+       echo $application['title'] . "\n"; // print application title
+       echo $application->ref('author')['name'] . "\n"; // print name of the application author
+       foreach ($application->related('application_tag') as $application_tag) { // get all tags of $application
+           echo $application_tag->ref('tag')['name'] . "\n"; // print the tag name
        }
    }
-
-Alternatively, you can use the ``$software->table('table_name')`` to achieve the same result.
