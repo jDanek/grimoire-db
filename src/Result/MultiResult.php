@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Grimoire\Result;
@@ -31,10 +32,9 @@ class MultiResult extends Result
     {
         $this->column = $column;
         $this->conditions[0] = "$this->table.$column AND";
-        $this->where[0] = '(' . $this->whereIn(
-                "$this->table.$column",
-                array_keys((array)$this->result->getRows())
-            ) . ')';
+        $this->where[0] = '('
+            . $this->whereIn("$this->table.$column", array_keys((array)$this->result->getRows()))
+            . ')';
         return $this;
     }
 
