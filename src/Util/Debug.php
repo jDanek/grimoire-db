@@ -23,7 +23,7 @@ class Debug
             }, $params);
 
             foreach ($params as $val) {
-                $query = preg_replace('/\?/', $val, $query, 1);
+                $query = preg_replace('/\?/', (string)$val, $query, 1);
             }
         }
         return $query;
