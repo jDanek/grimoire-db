@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace Grimoire\Result;
 
@@ -346,6 +347,10 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
 
         if ($val instanceof Literal) { // number or SQL code - for example 'NOW()'
             return (string)$val;
+        }
+
+        if ($val instanceof Row) {
+            $val = (string)$val;
         }
 
         return '\'' . $this->database->getConfig()->getConnection()->real_escape_string($val) . '\'';
@@ -730,7 +735,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
         $result = $this->query($query, $this->parameters)->get_result()->fetch_assoc();
         if ($result !== false) {
             $arr = array_values($result);
-            return reset($arr);
+            return (string)reset($arr);
         }
         return null;
     }
