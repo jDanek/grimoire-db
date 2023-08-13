@@ -22,11 +22,14 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
     /** @var mixed */
     protected $primary;
 
-    public function __construct(array $row, Result $result, Database $database)
+    protected $id;
+
+    public function __construct(array $row, Result $result, Database $database, $id = false)
     {
         $this->row = $row;
         $this->result = $result;
         $this->database = $database;
+        $this->id = $id;
         if (array_key_exists($result->getPrimary(), $row)) {
             $this->primary = $row[$result->getPrimary()];
         }
@@ -50,6 +53,7 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
 
     /**
      * Get referenced row
+     * @throws \ReflectionException
      */
     public function __get(string $name): ?Row
     {
@@ -64,22 +68,14 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
                     $keys[$row[$column]] = null;
                 }
             }
-            if ($keys) {
-                $table = $this->database->getConfig()->getStructure()->getReferencedTable(
-                    $name,
-                    $this->result->getTable()
-                );
-                $referenced = new Result($table, $this->database);
-                $referenced->where(
-                    "$table." . $this->database->getConfig()->getStructure()->getPrimary($table),
-                    array_keys($keys)
-                );
-            } else {
-                $referenced = [];
-            }
+
+            $table = $this->database->getConfig()->getStructure()->getReferencedTable($name, $this->result->getTable());
+            $referenced = new Result($table, $this->database);
+            $referenced->where("$table." . $this->database->getConfig()->getStructure()->getPrimary($table), array_keys($keys));
         }
-        // referenced row may not exist
-        return $referenced[$this[$column]] ?? null;
+        // create new row instance
+        $class = new \ReflectionClass($this->database->getConfig()->getRowClass());
+        return $class->newInstanceArgs([[], $referenced, $this->database, $this[$column]]);
     }
 
     /**
@@ -87,7 +83,8 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
      */
     public function __isset(string $name): bool
     {
-        return ($this->__get($name) !== null);
+        $row = $this->__get($name);
+        return $row[$row->result->getPrimary()] !== false;
     }
 
     /**
@@ -177,8 +174,19 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
         return $return;
     }
 
-    protected function access(string $key, bool $delete = false): void
+    protected function access(string $key, bool $delete = false): bool
     {
+        if ($this->id === null) { // couldn't be found
+            return false;
+        }
+        if (empty($this->row)) { // lazy loading
+            $row = $this->result[$this->id];
+            $this->row = ($row ? $row->row : null);
+        }
+        if ($this->row === null) { // not found
+            return false;
+        }
+
         if (
             $this->database->getConfig()->getCache()
             && !isset($this->modified[$key])
@@ -187,18 +195,20 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
             $id = ($this->primary ?? $this->row);
             $this->row = $this->result[$id]->row;
         }
+        return true;
     }
 
     // IteratorAggregate implementation
     public function getIterator(): \ArrayIterator
     {
         $this->access('');
-        return new \ArrayIterator($this->row);
+        return new \ArrayIterator((array)$this->row);
     }
 
     // Countable implementation
     public function count(): int
     {
+        $this->access('');
         return count($this->row);
     }
 
@@ -211,7 +221,9 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
      */
     public function offsetExists($key): bool
     {
-        $this->access($key);
+        if (!$this->access($key)) {
+            return false;
+        }
         $return = array_key_exists($key, $this->row);
         if (!$return) {
             $this->access($key, true);
@@ -222,12 +234,14 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
     /**
      * Get value of column
      * @param string $key column name
-     * @return string
+     * @return string false for non-existent rows
      */
     #[\ReturnTypeWillChange]
     public function offsetGet($key)
     {
-        $this->access($key);
+        if (!$this->access($key)) {
+            return false;
+        }
         if (!array_key_exists($key, $this->row)) {
             $this->access($key, true);
         }
@@ -241,6 +255,7 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
      */
     public function offsetSet($key, $value): void
     {
+        $this->access($key);
         $this->row[$key] = $value;
         $this->modified[$key] = $value;
     }

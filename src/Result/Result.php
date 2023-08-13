@@ -6,6 +6,7 @@ namespace Grimoire\Result;
 
 use Grimoire\Database;
 use Grimoire\Literal;
+use Grimoire\Util\ThenForeachHelper;
 
 /**
  * Filtered table representation
@@ -884,6 +885,27 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
         return $return;
     }
 
+    /**
+     * Pass result to callback
+     *
+     * @param callback $callback with signature (Result $result)
+     */
+    function then(callable $callback): void
+    {
+        Database::then($this, $callback);
+    }
+
+    /**
+     * Pass each row to callback
+     *
+     * @param callback $callback with signature (Row $row, $id)
+     */
+    public function thenForeach(callable $callback): void
+    {
+        $foreach = new ThenForeachHelper($callback);
+        Database::then($this, [$foreach, '__invoke']);
+    }
+
     public function access(string $key, bool $delete = false): bool
     {
         if ($delete) {
@@ -956,6 +978,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
     /**
      * Test if row exists
      * @param string|array $key row ID or array for where conditions
+     * @throws \Exception
      */
     public function offsetExists($key): bool
     {
@@ -974,6 +997,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
     {
         if ($this->single && empty($this->data)) {
             $clone = clone $this;
+            $clone->single = false; // execute as normal query
             if (is_array($key)) {
                 $clone->where($key)->limit(1);
             } else {

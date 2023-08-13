@@ -18,7 +18,9 @@ class Database
     public const TRANSACTION_ROLLBACK = 'ROLLBACK';
 
     /** @var Config */
-    public $config;
+    public $config = [];
+    /** @var array */
+    protected static $queue = null;
 
     public function __construct(Config $config)
     {
@@ -111,5 +113,48 @@ class Database
     public function rollback(): void
     {
         $this->config->getConnection()->rollback();
+    }
+
+    /**
+     * Deferred call
+     *
+     * @param Row|callback $callback
+     * @param ... $callback parameters for the callback
+     */
+    static function then($callback)
+    {
+        // static because it uses ob_start() which creates a global state
+        if (self::$queue !== null) {
+            self::$queue[] = func_get_args();
+        } else { // top level call
+            self::$queue = array(func_get_args());
+            ob_start([self::class, 'out'], 2); // 2 - minimal value, 1 means 4096 before PHP 5.4
+            while (self::$queue) {
+                $original = self::$queue;
+                self::$queue = []; // queue is refilled in self::out() and self::then() calls from callbacks
+                foreach ($original as $results) {
+                    if (!is_array($results)) {
+                        // self::out() is called by ob_start() so that it can print or requeue the string
+                        echo $results;
+                    } else {
+                        $callback = array_pop($results);
+                        call_user_func_array($callback, $results);
+                    }
+                }
+            }
+            ob_end_flush();
+            // mark top level call for the next time
+            self::$queue = null;
+        }
+    }
+
+    /** @access protected must be public because it is called by ob_start() */
+    static function out(string $string): string
+    {
+        if (self::$queue === null) {
+            return $string;
+        }
+        self::$queue[] = $string;
+        return '';
     }
 }
