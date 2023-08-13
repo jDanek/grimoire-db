@@ -7,6 +7,13 @@ Grimoire is a PHP library for simple working with data in the database. The most
 
 .. contents::
 
+Installation
+************
+
+.. code-block:: bash
+
+    composer require danek/grimoire-db
+
 Requirements
 ************
 - PHP 7.1+
