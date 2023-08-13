@@ -7,17 +7,17 @@ Grimoire is a PHP library for simple working with data in the database. The most
 
 .. contents::
 
+Requirements
+************
+- PHP 7.1+
+- only MySQL database supported
+
 Installation
 ************
 
 .. code-block:: bash
 
     composer require danek/grimoire-db
-
-Requirements
-************
-- PHP 7.1+
-- only MySQL database supported
 
 Usage
 *****
