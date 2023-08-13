@@ -1,8 +1,9 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace Grimoire;
 
-use Grimoire\Result\Literal;
 use Grimoire\Result\Row;
 use Grimoire\Structure\ConventionStructure;
 use Grimoire\Structure\DiscoveryStructure;
@@ -31,7 +32,6 @@ class DatabaseTest extends TestCase
                 ->setDebug(false);
 
             $this->db = new Database($config);
-
         } catch (\Exception $e) {
             echo $e->getMessage();//Remove or change message in production code
         }
@@ -365,7 +365,11 @@ class DatabaseTest extends TestCase
             $data[] = $application->author['name'] . ': ' . $application['title'];
         }
 
-        foreach ($this->db->application_tag('application.author.name', 'Jakub Vrana')->group('application_tag.tag_id') as $application_tag) {
+        foreach (
+            $this->db->application_tag('application.author.name', 'Jakub Vrana')->group(
+                'application_tag.tag_id'
+            ) as $application_tag
+        ) {
             $data[] = $application_tag->tag['name'];
         }
 
@@ -395,7 +399,10 @@ class DatabaseTest extends TestCase
                 $this->db->application(['id < ?' => 4, 'author_id' => 12]),
             ] as $result
         ) {
-            $data[] = implode(', ', array_keys(iterator_to_array($result->order('id')))); // aggregation("GROUP_CONCAT(id)") is not available in all drivers
+            $data[] = implode(
+                ', ',
+                array_keys(iterator_to_array($result->order('id')))
+            ); // aggregation("GROUP_CONCAT(id)") is not available in all drivers
         }
 
         $this->assertEquals([
@@ -537,7 +544,8 @@ class DatabaseTest extends TestCase
     {
         $data = [];
         for ($i = 0; $i < 2; $i++) {
-            $data[] = $this->db->table('application')->insertUpdate(['id' => 5], ['author_id' => 12, 'title' => 'Texy', 'web' => "", 'slogan' => "$i"]);
+            $data[] = $this->db->table('application')->insertUpdate(['id' => 5],
+                ['author_id' => 12, 'title' => 'Texy', 'web' => "", 'slogan' => "$i"]);
         }
         $application = $this->db->application[5];
         $data[] = $application->related('application_tag')->insertUpdate(['tag_id' => 21], []);
@@ -558,7 +566,10 @@ class DatabaseTest extends TestCase
         $prefix = new Database($config);
         $applications = $prefix->application('author.name', 'Jakub Vrana');
 
-        $this->assertEquals('SELECT prefix_application.* FROM prefix_application LEFT JOIN prefix_author AS author ON prefix_application.author_id = author.id WHERE (author.name = \'Jakub Vrana\')', $applications);
+        $this->assertEquals(
+            'SELECT prefix_application.* FROM prefix_application LEFT JOIN prefix_author AS author ON prefix_application.author_id = author.id WHERE (author.name = \'Jakub Vrana\')',
+            $applications
+        );
     }
 
     public function testLock()
@@ -569,7 +580,11 @@ class DatabaseTest extends TestCase
     public function testBackJoin()
     {
         $data = [];
-        foreach ($this->db->table('author')->select("author.*, COUNT(DISTINCT application:application_tag:tag_id) AS tags")->group("author.id")->order("tags DESC") as $autor) {
+        foreach (
+            $this->db->table('author')->select(
+                "author.*, COUNT(DISTINCT application:application_tag:tag_id) AS tags"
+            )->group("author.id")->order("tags DESC") as $autor
+        ) {
             $data[] = "$autor[name]: $autor[tags]";
         }
 
@@ -591,7 +606,11 @@ class DatabaseTest extends TestCase
     {
         $data = [];
         foreach ($this->db->table('author')->order('id') as $author) {
-            foreach ($this->db->application_tag('application_id', $author->related('application'))->order("application_id, tag_id") as $application_tag) {
+            foreach (
+                $this->db->application_tag('application_id', $author->related('application'))->order(
+                    "application_id, tag_id"
+                ) as $application_tag
+            ) {
                 $data[] = "$author: $application_tag[application_id]: $application_tag[tag_id]";
             }
         }
@@ -838,10 +857,12 @@ class SessionCache implements CacheInterface
     {
         $_SESSION[$this->sessionKey] = $values;
 
-        return empty(array_diff(
+        return empty(
+        array_diff(
             (array)$values,
             (array)$_SESSION[$this->sessionKey]
-        ));
+        )
+        );
     }
 
     public function deleteMultiple($keys): bool

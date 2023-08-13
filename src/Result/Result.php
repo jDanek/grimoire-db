@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Grimoire\Result;
 
 use Grimoire\Database;
+use Grimoire\Literal;
 
 /**
  * Filtered table representation

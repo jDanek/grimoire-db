@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Grimoire\Result;
+namespace Grimoire;
 
 /**
  * SQL literal value

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Grimoire\Util;
 
-use Grimoire\Result\Literal;
+use Grimoire\Literal;
 
 class StringQuoter
 {
