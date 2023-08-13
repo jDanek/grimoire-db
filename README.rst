@@ -27,7 +27,8 @@ Usage
    <?php
 
    $connection = new \Mysqli(...);
-   $software = new Grimoire\Database($connection);
+   $config = Grimoire\Config::build($connection);
+   $software = new Grimoire\Database($config);
 
    foreach ($software->table('application')->order("title") as $application) { // get all applications ordered by title
        echo $application['title'] . "\n"; // print application title
