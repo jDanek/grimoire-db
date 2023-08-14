@@ -578,7 +578,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
         }
         $this->__destruct();
         $this->conditions[] = "$operator $condition";
-        $condition = $this->removeExtraDots($condition);
+        $condition = $this->removeExtraDots((string)$condition);
         if (count($args) != 2 || strpbrk($condition, '?')) { // where('column < ? OR column > ?', [1, 2])
             if (count($args) != 2 || !is_array($parameters)) { // where('column < ? OR column > ?', 1, 2)
                 $parameters = array_slice($args, 1);
