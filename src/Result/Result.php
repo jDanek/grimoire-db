@@ -69,8 +69,8 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
     protected $database;
     /** @var string */
     protected $primary;
-    /** @var array|mixed|null */
-    protected $rows;
+    /** @var array */
+    protected $rows = [];
     /** @var array<Result> */
     protected $referenced = [];
 
@@ -92,14 +92,14 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
      */
     public function __destruct()
     {
-        if (!$this->select && isset($this->rows)) {
+        if (!$this->select && !empty($this->rows)) {
             $access = $this->access;
             if (is_array($access)) {
                 $access = array_filter($access);
             }
             $this->database->getConfig()->getCache()->set("$this->table;" . implode(',', $this->conditions), $access);
         }
-        $this->rows = null;
+        $this->rows = [];
         unset($this->data);
     }
 
@@ -188,9 +188,9 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
     }
 
     /**
-     * @return array|mixed|null
+     * @return array
      */
-    public function getRows()
+    public function getRows(): array
     {
         return $this->rows;
     }
@@ -229,7 +229,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
                 $this->select
             ) . ",$this->group,$this->having," . implode(',', $this->order)
         );
-        if (!isset($this->rows) && !is_string($this->accessed)) {
+        if (empty($this->rows) && !is_string($this->accessed)) {
             $this->accessed = $this->database->getConfig()->getCache()->get(
                 "$this->table;" . implode(',', $this->conditions)
             );
@@ -405,7 +405,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
         if ($return === false) {
             return false;
         }
-        $this->rows = null;
+        $this->rows = [];
 
         $count = $return->affected_rows;
         $return->close();
@@ -664,7 +664,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
      */
     public function order($columns): self
     {
-        $this->rows = null;
+        $this->rows = [];
         if ($columns !== '') {
             $columns = (is_array($columns) ? $columns : func_get_args());
             foreach ($columns as $column) {
@@ -687,7 +687,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
      */
     public function limit(int $limit, ?int $offset = null): self
     {
-        $this->rows = null;
+        $this->rows = [];
         if (!empty($this->union)) {
             $this->unionLimit = +$limit;
             $this->unionOffset = +$offset;
@@ -787,7 +787,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
      */
     protected function execute(): void
     {
-        if (!isset($this->rows)) {
+        if (empty($this->rows)) {
             $result = false;
             $exception = null;
             $parameters = [];
@@ -923,7 +923,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
 
         if (empty($this->select) && !empty($this->accessed) && (empty($key) || !isset($this->accessed[$key]))) {
             $this->accessed = '';
-            $this->rows = null;
+            $this->rows = [];
             return true;
         }
 

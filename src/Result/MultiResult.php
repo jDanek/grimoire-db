@@ -33,7 +33,7 @@ class MultiResult extends Result
         $this->column = $column;
         $this->conditions[0] = "$this->table.$column AND";
         $this->where[0] = '('
-            . $this->whereIn("$this->table.$column", array_keys((array)$this->result->getRows()))
+            . $this->whereIn("$this->table.$column", array_keys($this->result->getRows()))
             . ')';
         return $this;
     }
@@ -144,7 +144,7 @@ class MultiResult extends Result
      */
     protected function execute(): void
     {
-        if (!isset($this->rows)) {
+        if (empty($this->rows)) {
             $referencing = &$this->result->referencing[$this->__toString()];
             if (!isset($referencing)) {
                 if (!$this->limit || count($this->result->getRows()) <= 1 || !empty($this->union)) {
@@ -152,7 +152,7 @@ class MultiResult extends Result
                 } else { //! doesn't work with union
                     $result = clone $this;
                     $first = true;
-                    foreach ((array)$this->result->getRows() as $val) {
+                    foreach ($this->result->getRows() as $val) {
                         if ($first) {
                             $result->where[0] = "$this->column = " . $this->quote($val);
                             $first = false;
