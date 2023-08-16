@@ -59,11 +59,10 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
     {
         $column = $this->database->getConfig()->getStructure()->getReferencedColumn($name, $this->result->getTable());
 
-        $ref = $this->result->getReferenced($name);
-        $referenced = &$ref; // only variables can be passed by reference
+        $referenced = &$this->result->getReferenced($name);
         if (!isset($referenced)) {
             $keys = [];
-            foreach ($this->result->getRows() as $row) {
+            foreach ((array)$this->result->getRows() as $row) {
                 if ($row[$column] !== null) {
                     $keys[$row[$column]] = null;
                 }

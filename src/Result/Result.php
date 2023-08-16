@@ -195,9 +195,9 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
         return $this->rows;
     }
 
-    public function getReferenced(?string $name = null): ?Result
+    public function &getReferenced(?string $name = null): ?Result
     {
-        return $this->referenced[$name] ?? null;
+        return $this->referenced[$name];
     }
 
     public function getParameters(): array
