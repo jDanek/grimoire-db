@@ -7,11 +7,11 @@ namespace Grimoire\Test;
 use Grimoire\Config;
 use Grimoire\Database;
 use Grimoire\Literal;
-use Grimoire\Test\Cache\SessionCache;
-use Grimoire\Test\Result\CustomRow;
 use Grimoire\Result\Row;
 use Grimoire\Structure\ConventionStructure;
 use Grimoire\Structure\DiscoveryStructure;
+use Grimoire\Test\Cache\SessionCache;
+use Grimoire\Test\Result\CustomRow;
 use Grimoire\Test\Structure\SoftwareConventionStructure;
 use PHPUnit\Framework\TestCase;
 
@@ -81,9 +81,9 @@ class DatabaseTest extends TestCase
         $data1 = [];
         foreach ($this->db->table('application') as $app) {
             $title = $app['title'];
-            $data1[$title] = ['author' => $app->author['name']];
+            $data1[$title] = ['author' => $app->ref('author')['name']];
             foreach ($app->related('application_tag') as $application_tag) {
-                $data1[$title]['tags'][] = $application_tag->tag['name'];
+                $data1[$title]['tags'][] = $application_tag->ref('tag')['name'];
             }
         }
 
@@ -92,9 +92,9 @@ class DatabaseTest extends TestCase
         $data2 = [];
         foreach ($this->db->table('application') as $application) {
             $title = $application['title'];
-            $data2[$title] = ['author' => $application->author['name']];
+            $data2[$title] = ['author' => $application->ref('author')['name']];
             foreach ($application->related('application_tag') as $application_tag) {
-                $data2[$title]['tags'][] = $application_tag->tag['name'];
+                $data2[$title]['tags'][] = $application_tag->ref('tag')['name'];
             }
         }
 
@@ -104,7 +104,7 @@ class DatabaseTest extends TestCase
     public function testDetail()
     {
         $data = [];
-        $application = $this->db->application[1];
+        $application = $this->db->row('application', 1);
         foreach ($application as $key => $val) {
             $data[] = "$key: $val";
         }
@@ -122,7 +122,11 @@ class DatabaseTest extends TestCase
     public function testSearchOrder()
     {
         $data = [];
-        foreach ($this->db->application('web LIKE ?', 'http://%')->order('title')->limit(3) as $application) {
+        foreach (
+            $this->db->table('application', ['web LIKE ?', ['http://%']])
+                ->order('title')
+                ->limit(3) as $application
+        ) {
             $data[] = $application['title'];
         }
 
@@ -137,8 +141,8 @@ class DatabaseTest extends TestCase
     {
         $data1 = [];
         $application = $this->db->table('application')->where('title', 'Adminer')->fetch();
-        foreach ($application->application_tag('tag_id', 21) as $application_tag) {
-            $data1[] = $application_tag->tag['name'];
+        foreach ($application->related('application_tag', ['tag_id', 21]) as $application_tag) {
+            $data1[] = $application_tag->ref('tag')['name'];
         }
 
         $this->assertEquals([
@@ -147,15 +151,15 @@ class DatabaseTest extends TestCase
 
 
         $data2 = [];
-        foreach ($application->application_tag('tag_id', 21) as $application_tag) {
-            $data2[] = $application_tag->tag['name'];
+        foreach ($application->related('application_tag', ['tag_id', 21]) as $application_tag) {
+            $data2[] = $application_tag->ref('tag')['name'];
         }
 
         $this->assertEquals([
             'PHP',
         ], $data2);
 
-        $slogan = $this->db->application('title', 'Adminer')->fetch('slogan');
+        $slogan = $this->db->table('application', ['title', ['Adminer']])->fetch('slogan');
         $this->assertEquals('Database management in single PHP file', $slogan);
     }
 
@@ -190,7 +194,7 @@ class DatabaseTest extends TestCase
         $data = [];
         foreach ($this->db->table('application') as $application) {
             $count = $application->related('application_tag')->count("*");
-            $data[] = "$application[title]: $count tag(s)";
+            $data[] = $application['title'] . ': ' . $count . ' tag(s)';
         }
 
         $this->assertEquals([
@@ -205,8 +209,8 @@ class DatabaseTest extends TestCase
     {
         $data = [];
 
-        $unknownBorn = $this->db->author('born', null); // authors with unknown date of born
-        foreach ($this->db->application('author_id', $unknownBorn) as $application) { // their applications
+        $unknownBorn = $this->db->table('author', ['born', [null]]); // authors with unknown date of born
+        foreach ($this->db->table('application', ['author_id', $unknownBorn]) as $application) { // their applications
             $data[] = $application['title'];
         }
 
@@ -220,16 +224,18 @@ class DatabaseTest extends TestCase
 
     public function testDiscovery()
     {
-        $config = Config::builder($this->connection)
-            ->setStructure(new DiscoveryStructure($this->connection, null, '%s_id'));
+        $config = Config::builder(
+            $this->connection,
+            new DiscoveryStructure($this->connection, null, '%s_id')
+        );
         $db = new Database($config);
 
         $data = [];
         foreach ($db->table('application') as $application) {
             $title = $application['title'];
-            $data[$title] = ['author' => $application->author['name']];
+            $data[$title] = ['author' => $application->ref('author')['name']];
             foreach ($application->related('application_tag') as $application_tag) {
-                $data[$title]['tags'][] = $application_tag->tag['name'];
+                $data[$title]['tags'][] = $application_tag->ref('tag')['name'];
             }
         }
 
@@ -269,14 +275,17 @@ class DatabaseTest extends TestCase
     {
         $_SESSION = []; // not session_start() - headers already sent
 
-        $config = Config::builder($this->connection)
-            ->setCache(new SessionCache('Grimoire'));
+        $config = Config::builder(
+            $this->connection,
+            null,
+            new SessionCache('Grimoire')
+        );
         $cache = new Database($config);
 
         $applications = $cache->table('application');
         $application = $applications->fetch();
         $title = $application['title'];
-        $name = $application->author['name'];
+        $name = $application->ref('author')['name'];
         // get all columns with no cache
         $this->assertEquals('SELECT * FROM application', $applications);
         $applications->__destruct();
@@ -302,8 +311,7 @@ class DatabaseTest extends TestCase
         $id = 5; // auto_increment is disabled in demo
         $application = $this->db->table('application')->insert([
             'id' => $id,
-            //'author_id' => $this->db->row('author',12),
-            'author_id' => $this->db->author[12],
+            'author_id' => $this->db->row('author', 12),
             'title' => new Literal("'Texy'"),
             'web' => '',
             'slogan' => 'The best humane Web text generator',
@@ -311,16 +319,16 @@ class DatabaseTest extends TestCase
         $application_tag = $application->related('application_tag')->insert(['tag_id' => 21]);
 
         // retrieve the really stored value
-        $application = $this->db->application[$id];
+        $application = $this->db->row('application', $id);
         $this->assertEquals('Texy', $application['title']);
 
         $application['web'] = "http://texy.info/";
         $this->assertEquals('1 row updated.', $application->update() . ' row updated.');
-        $this->assertEquals('http://texy.info/', $this->db->application[$id]['web']);
+        $this->assertEquals('http://texy.info/', $this->db->row('application', $id)['web']);
 
-        $this->db->application_tag('application_id', 5)->delete(); // foreign keys may be disabled
+        $this->db->table('application_tag', ['application_id', [5]])->delete(); // foreign keys may be disabled
         $this->assertEquals('1 row deleted.', $application->delete() . ' row deleted.');
-        $this->assertEquals('0 rows found.', count($this->db->application('id', $id)) . ' rows found.');
+        $this->assertEquals('0 rows found.', count($this->db->table('application', ['id', [$id]])) . ' rows found.');
     }
 
     public function testPairs()
@@ -350,7 +358,7 @@ class DatabaseTest extends TestCase
         foreach ($this->db->table('author') as $author) {
             $applications = $author->related('application')->via('maintainer_id');
             foreach ($applications as $application) {
-                $data[] = "$author[name]: $application[title]";
+                $data[] = $author['name'] . ': ' . $application['title'];
             }
         }
 
@@ -367,15 +375,14 @@ class DatabaseTest extends TestCase
     {
         $data = [];
         foreach ($this->db->table('application')->order('author.name, title') as $application) {
-            $data[] = $application->author['name'] . ': ' . $application['title'];
+            $data[] = $application->ref('author')['name'] . ': ' . $application['title'];
         }
 
         foreach (
-            $this->db->application_tag('application.author.name', 'Jakub Vrana')->group(
-                'application_tag.tag_id'
-            ) as $application_tag
+            $this->db->table('application_tag', ['application.author.name', ['Jakub Vrana']])
+                ->group('application_tag.tag_id') as $application_tag
         ) {
-            $data[] = $application_tag->tag['name'];
+            $data[] = $application_tag->ref('tag')['name'];
         }
 
         $this->assertEquals([
@@ -394,14 +401,14 @@ class DatabaseTest extends TestCase
         $data = [];
         foreach (
             [
-                $this->db->application('id', 4),
-                $this->db->application('id < ?', 4),
-                $this->db->application('id < ?', [4]),
-                $this->db->application('id', [1, 2]),
-                $this->db->application('id', null),
-                $this->db->application('id', $this->db->table('application')),
-                $this->db->application('id < ?', 4)->where('maintainer_id IS NOT NULL'),
-                $this->db->application(['id < ?' => 4, 'author_id' => 12]),
+                $this->db->table('application', ['id', [4]]),
+                $this->db->table('application', ['id < ?', [4]]),
+                $this->db->table('application', ['id < ?', [4]]),
+                $this->db->table('application', ['id', [1, 2]]),
+                $this->db->table('application', ['id', [null]]),
+                $this->db->table('application', ['id', $this->db->table('application')]),
+                $this->db->table('application', ['id < ?', [4]])->where('maintainer_id IS NOT NULL'),
+                $this->db->table('application', ['id < ?'=> 4, 'author_id' => 12]),
             ] as $result
         ) {
             $data[] = implode(
@@ -425,14 +432,14 @@ class DatabaseTest extends TestCase
     public function testMultiple()
     {
         $data = [];
-        $application = $this->db->application[1];
+        $application = $this->db->row('application', 1);
         foreach (
             $application->related('application_tag')
                 ->select('application_id', 'tag_id')
                 ->order("application_id DESC", "tag_id DESC")
             as $application_tag
         ) {
-            $data[] = "$application_tag[application_id] $application_tag[tag_id]";
+            $data[] = $application_tag['application_id'] . ' ' . $application_tag['tag_id'];
         }
 
         $this->assertEquals([
@@ -445,14 +452,18 @@ class DatabaseTest extends TestCase
     {
         $data = [];
 
-        $application = $this->db->application[1];
+        $application = $this->db->row('application', 1);
         foreach ($application->related('application_tag')->order('tag_id')->limit(1, 1) as $application_tag) {
-            $data[] = $application_tag->tag['name'];
+            $data[] = $application_tag->ref('tag')['name'];
         }
 
         foreach ($this->db->table('application') as $application) {
-            foreach ($application->related('application_tag')->order('tag_id')->limit(1, 1) as $application_tag) {
-                $data[] = $application_tag->tag['name'];
+            foreach (
+                $application->related('application_tag')
+                    ->order('tag_id')
+                    ->limit(1, 1) as $application_tag
+            ) {
+                $data[] = $application_tag->ref('tag')['name'];
             }
         }
 
@@ -468,9 +479,9 @@ class DatabaseTest extends TestCase
         $data = [];
         $this->db->beginTransaction();
         $this->db->table('tag')->insert(['id' => 99, 'name' => 'Test']);
-        $data[] = (string)$this->db->tag[99];
+        $data[] = (string)$this->db->row('tag', 99);
         $this->db->rollback();
-        $data[] = (string)$this->db->tag[99];
+        $data[] = (string)$this->db->row('tag', 99);
 
         $this->assertEquals([
             99,
@@ -502,7 +513,7 @@ class DatabaseTest extends TestCase
             'maintainer_id' => null,
         ];
 
-        $this->assertEquals(2, $this->db->application[$where]['id']);
+        $this->assertEquals(2, $this->db->table('application', $where)->fetch('id'));
 
         $applications = $this->db->table('application')->order('id');
         $this->assertEquals(2, $applications[$where]['id']);
@@ -511,12 +522,12 @@ class DatabaseTest extends TestCase
     public function testExtended()
     {
         $data = [];
-        $application = $this->db->application[3];
+        $application = $this->db->row('application', 3);
         $application->related('application_tag')->insert(['tag_id' => 22], ['tag_id' => 23]);
         foreach ($application->related('application_tag')->order("tag_id DESC") as $application_tag) {
-            $data[] = "$application_tag[application_id] $application_tag[tag_id]";
+            $data[] = $application_tag['application_id'] . ' ' . $application_tag['tag_id'];
         }
-        $application->application_tag('tag_id', [22, 23])->delete();
+        $application->related('application_tag', ['tag_id', [22, 23]])->delete();
 
         $this->assertEquals([
             '3 23',
@@ -549,12 +560,17 @@ class DatabaseTest extends TestCase
     {
         $data = [];
         for ($i = 0; $i < 2; $i++) {
-            $data[] = $this->db->table('application')->insertUpdate(['id' => 5],
-                ['author_id' => 12, 'title' => 'Texy', 'web' => "", 'slogan' => "$i"]);
+            $data[] = $this->db->table('application')->insertUpdate(
+                ['id' => 5],
+                ['author_id' => 12, 'title' => 'Texy', 'web' => "", 'slogan' => "$i"]
+            );
         }
-        $application = $this->db->application[5];
-        $data[] = $application->related('application_tag')->insertUpdate(['tag_id' => 21], []);
-        $this->db->application('id', 5)->delete();
+        $application = $this->db->row('application', 5);
+        $data[] = $application->related('application_tag')->insertUpdate(
+            ['tag_id' => 21],
+            []
+        );
+        $this->db->table('application', ['id', 5])->delete();
 
         $this->assertEquals([
             1,
@@ -586,11 +602,12 @@ class DatabaseTest extends TestCase
     {
         $data = [];
         foreach (
-            $this->db->table('author')->select(
-                "author.*, COUNT(DISTINCT application:application_tag:tag_id) AS tags"
-            )->group("author.id")->order("tags DESC") as $autor
+            $this->db->table('author')
+                ->select('author.*, COUNT(DISTINCT application:application_tag:tag_id) AS tags')
+                ->group('author.id')
+                ->order('tags DESC') as $autor
         ) {
-            $data[] = "$autor[name]: $autor[tags]";
+            $data[] = $autor['name'] . ': ' . $autor['tags'];
         }
 
         $this->assertEquals([
@@ -616,7 +633,7 @@ class DatabaseTest extends TestCase
                     "application_id, tag_id"
                 ) as $application_tag
             ) {
-                $data[] = "$author: $application_tag[application_id]: $application_tag[tag_id]";
+                $data[] = $author . ': ' . $application_tag['application_id'] . ': ' . $application_tag['tag_id'];
             }
         }
 
@@ -633,7 +650,11 @@ class DatabaseTest extends TestCase
     public function testLiteral()
     {
         $data = [];
-        foreach ($this->db->table('author')->select(new Literal('? + ?', 1, 2))->fetch() as $val) {
+        foreach (
+            $this->db->table('author')
+                ->select(new Literal('? + ?', 1, 2))
+                ->fetch() as $val
+        ) {
             $data[] = $val;
         }
 
@@ -644,7 +665,7 @@ class DatabaseTest extends TestCase
 
     public function testRowSet()
     {
-        $application = $this->db->application[1];
+        $application = $this->db->row('application', 1);
         $application->author = $this->db->author[12];
         $this->assertEquals(1, $application->update());
         $application->update(['author_id' => 11]);
@@ -656,11 +677,11 @@ class DatabaseTest extends TestCase
         $cfg = $this->db->getConfig();
         $cfg->setRowClass(CustomRow::class);
 
-        $application = $this->db->application[1];
+        $application = $this->db->row('application', 1);
         $this->assertEquals('Adminer', $application['test_title']);
-        $this->assertEquals('Jakub Vrana', $application->author['test_name']);
+        $this->assertEquals('Jakub Vrana', $application->ref('author')['test_name']);
 
-        $this->db->rowClass = Row::class;
+        $cfg->setRowClass(Row::class);
     }
 
     public function testDateTime()
@@ -682,7 +703,7 @@ class DatabaseTest extends TestCase
     public function testInNull()
     {
         $data = [];
-        foreach ($this->db->application('maintainer_id', [11, null]) as $application) {
+        foreach ($this->db->table('application', ['maintainer_id', [11, null]]) as $application) {
             $data[] = $application['id'];
         }
         $this->assertEquals([
@@ -696,8 +717,8 @@ class DatabaseTest extends TestCase
         $config = Config::builder($this->connection)
             ->setStructure(new SoftwareConventionStructure());
 
-        $convention = new Database($config);
-        $maintainer = $convention->application[1]->maintainer;
+        $db = new Database($config);
+        $maintainer = $db->row('application', 1)->ref('maintainer');
         $this->assertEquals('Jakub Vrana', $maintainer['name']);
 
         $data = [];
@@ -723,7 +744,7 @@ class DatabaseTest extends TestCase
     public function testMultiResultLoop()
     {
         $data = [];
-        $application = $this->db->application[1];
+        $application = $this->db->row('application', 1);
         for ($i = 0; $i < 4; $i++) {
             $data[] = count($application->related('application_tag'));
         }
@@ -739,7 +760,7 @@ class DatabaseTest extends TestCase
     public function testAnd()
     {
         $data = [];
-        foreach ($this->db->application('author_id', 11)->and('maintainer_id', 11) as $application) {
+        foreach ($this->db->table('application', ['author_id', 11])->and('maintainer_id', 11) as $application) {
             $data[] = $application['title'];
         }
 
@@ -751,7 +772,11 @@ class DatabaseTest extends TestCase
     public function testOr()
     {
         $data = [];
-        foreach ($this->db->application('author_id', 12)->or('maintainer_id', 11)->order('title') as $application) {
+        foreach (
+            $this->db->table('application', ['author_id', 12])
+                ->or('maintainer_id', 11)
+                ->order('title') as $application
+        ) {
             $data[] = $application['title'];
         }
 
@@ -803,8 +828,8 @@ class DatabaseTest extends TestCase
                 ->order("application_id, tag_id")
                 ->thenForeach(function ($application_tag) use (&$data) {
                     Database::then(
-                        $application_tag->application,
-                        $application_tag->tag,
+                        $application_tag->ref('application'),
+                        $application_tag->ref('tag'),
                         function ($application, $tag) use (&$data) {
                             $data['tags'][] = $application['title'] . ': ' . $tag['name'];
                         }
