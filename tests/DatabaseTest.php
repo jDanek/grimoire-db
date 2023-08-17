@@ -2,13 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Grimoire;
+namespace Grimoire\Test;
 
+use Grimoire\Config;
+use Grimoire\Database;
+use Grimoire\Literal;
+use Grimoire\Test\Cache\SessionCache;
+use Grimoire\Test\Result\CustomRow;
 use Grimoire\Result\Row;
 use Grimoire\Structure\ConventionStructure;
 use Grimoire\Structure\DiscoveryStructure;
+use Grimoire\Test\Structure\SoftwareConventionStructure;
 use PHPUnit\Framework\TestCase;
-use Psr\SimpleCache\CacheInterface;
 
 class DatabaseTest extends TestCase
 {
@@ -649,7 +654,7 @@ class DatabaseTest extends TestCase
     {
         // update config
         $cfg = $this->db->getConfig();
-        $cfg->setRowClass(TestRow::class);
+        $cfg->setRowClass(CustomRow::class);
 
         $application = $this->db->application[1];
         $this->assertEquals('Adminer', $application['test_title']);
@@ -821,108 +826,5 @@ class DatabaseTest extends TestCase
                 'Dibi: MySQL',
             ],
         ], $data);
-    }
-}
-
-/**
- * @internal
- */
-class TestRow extends Row
-{
-    function offsetExists($key): bool
-    {
-        return parent::offsetExists(preg_replace('~^test_~', '', $key));
-    }
-
-    #[\ReturnTypeWillChange]
-    function offsetGet($key)
-    {
-        return parent::offsetGet(preg_replace('~^test_~', '', $key));
-    }
-}
-
-/**
- * @internal
- */
-class SoftwareConventionStructure extends ConventionStructure
-{
-    function getReferencedTable(string $name, string $table): string
-    {
-        switch ($name) {
-            case 'maintainer':
-                return parent::getReferencedTable('author', $table);
-        }
-        return parent::getReferencedTable($name, $table);
-    }
-}
-
-/**
- * @internal
- */
-class SessionCache implements CacheInterface
-{
-    /** @var string */
-    private $sessionKey = '';
-
-    public function __construct(string $key, bool $autostart = false)
-    {
-        $this->sessionKey = $key;
-        if ($autostart === true && (session_status() === PHP_SESSION_NONE)) {
-            session_start();
-        }
-    }
-
-    public function get($key, $default = null)
-    {
-        return $_SESSION[$this->sessionKey][$key] ?? $default;
-    }
-
-    public function set($key, $value, $ttl = null): bool
-    {
-        $_SESSION[$this->sessionKey][$key] = $value;
-        return ($_SESSION[$this->sessionKey][$key] === $value);
-    }
-
-    public function delete($key): bool
-    {
-        unset($_SESSION[$this->sessionKey][$key]);
-        return !isset($_SESSION[$this->sessionKey][$key]);
-    }
-
-    public function clear(): bool
-    {
-        unset($_SESSION[$this->sessionKey]);
-        return !isset($_SESSION[$this->sessionKey]);
-    }
-
-    public function getMultiple($keys, $default = null): iterable
-    {
-        return $_SESSION[$this->sessionKey] ?? [];
-    }
-
-    public function setMultiple($values, $ttl = null): bool
-    {
-        $_SESSION[$this->sessionKey] = $values;
-
-        return empty(
-        array_diff(
-            (array)$values,
-            (array)$_SESSION[$this->sessionKey]
-        )
-        );
-    }
-
-    public function deleteMultiple($keys): bool
-    {
-        foreach ($keys as $key) {
-            unset($_SESSION[$this->sessionKey][$key]);
-        }
-        $diff = array_intersect_key(array_flip((array)$keys), $_SESSION[$this->sessionKey]);
-        return count($diff) !== count((array)$keys);
-    }
-
-    public function has($key): bool
-    {
-        return isset($_SESSION[$this->sessionKey][$key]);
     }
 }
