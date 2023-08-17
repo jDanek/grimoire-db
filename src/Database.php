@@ -41,6 +41,12 @@ class Database
     {
         $return = new Result($this->config->getStructure()->getReferencingTable($table, ''), $this);
         if (!empty($where)) {
+            // simple autodetect assoc array - if $where is an associative array,
+            // it is necessary to wrap it to avoid creating variables from the array keys
+            $keys = array_keys($where);
+            if ($keys !== array_keys($keys)) {
+                $where = ['condition' => $where];
+            }
             call_user_func_array([$return, 'where'], $where);
         }
         return $return;
