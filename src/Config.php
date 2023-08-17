@@ -29,14 +29,22 @@ class Config
     /** @var bool */
     private $jsonAsArray = false;
 
-    public static function builder(\Mysqli $connection): self
-    {
-        return new self($connection);
+    public static function builder(
+        \Mysqli $connection,
+        ?StructureInterface $structure = null,
+        ?CacheInterface $cache = null
+    ): self {
+        return new self($connection, $structure, $cache);
     }
 
-    protected function __construct(\Mysqli $connection)
-    {
+    protected function __construct(
+        \Mysqli $connection,
+        ?StructureInterface $structure = null,
+        ?CacheInterface $cache = null
+    ) {
         $this->setConnection($connection);
+        $this->setStructure($structure);
+        $this->setCache($cache);
     }
 
     public function getConnection(): \Mysqli
@@ -56,9 +64,9 @@ class Config
     }
 
     /**
-     * @param StructureInterface $structure null for new ConventionStructure()
+     * @param StructureInterface|null $structure null for new ConventionStructure()
      */
-    public function setStructure(StructureInterface $structure): self
+    public function setStructure(?StructureInterface $structure): self
     {
         $this->structure = $structure;
         return $this;
