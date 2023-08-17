@@ -18,7 +18,7 @@ class Database
     public const TRANSACTION_ROLLBACK = 'ROLLBACK';
 
     /** @var Config */
-    protected $config = [];
+    protected $config;
     /** @var array */
     protected static $queue = null;
 
