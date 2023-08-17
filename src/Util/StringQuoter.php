@@ -43,7 +43,7 @@ class StringQuoter
         }
 
         if (is_float($val)) {
-            return sprintf('%.14F', $val); // otherwise depends on setlocale()
+            return sprintf('%.14F', $val); // otherwise depends on set_locale()
         }
 
         if ($val instanceof Literal) { // number or SQL code - for example 'NOW()'

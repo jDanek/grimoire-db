@@ -7,6 +7,7 @@ namespace Grimoire\Result;
 use Grimoire\Database;
 use Grimoire\Literal;
 use Grimoire\Util\ThenForeachHelper;
+use Psr\SimpleCache\InvalidArgumentException;
 
 /**
  * Filtered table representation
@@ -89,6 +90,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
 
     /**
      * Save data to cache and empty result
+     * @throws InvalidArgumentException
      */
     public function __destruct()
     {
@@ -219,6 +221,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
 
     /**
      * Get SQL query
+     * @throws InvalidArgumentException
      */
     public function __toString(): string
     {
@@ -271,7 +274,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
                 foreach (debug_backtrace() as $backtrace) {
                     // stop on first file outside Grimoire source codes
                     if (isset($backtrace['file']) && !preg_match($pattern, $backtrace['file'])) {
-                        error_log("$backtrace[file]:$backtrace[line]:$debug\n", 0);
+                        error_log("$backtrace[file]:$backtrace[line]:$debug\n");
                         break;
                     }
                 }
@@ -540,6 +543,8 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
      * Add select clause, more calls appends to the end
      *
      * @param string $columns for example 'column, MD5(column) AS column_md5', empty string to reset previously set columns
+     * @return Result
+     * @throws InvalidArgumentException
      */
     public function select($columns): self
     {
@@ -566,6 +571,9 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
         return $this->whereOperator('AND', $args);
     }
 
+    /**
+     * @throws InvalidArgumentException
+     */
     protected function whereOperator(string $operator, array $args): self
     {
         $condition = $args[0];
@@ -632,6 +640,9 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
         return $condition;
     }
 
+    /**
+     * @throws InvalidArgumentException
+     */
     public function __call(string $name, array $args): self
     {
         $operator = strtoupper($name);
@@ -649,6 +660,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
      * @param mixed $parameters
      * @param ... $parameters
      * @return Result fluent interface
+     * @throws InvalidArgumentException
      */
     public function __invoke(string $where, $parameters = []): self
     {
@@ -700,6 +712,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
 
     /**
      * Set group clause, more calls rewrite old values
+     * @throws InvalidArgumentException
      */
     public function group(string $columns, string $having = ''): self
     {
@@ -746,6 +759,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
     /**
      * Count number of rows
      * @throws \Exception
+     * @throws InvalidArgumentException
      */
     public function count(string $column = ''): int
     {
@@ -782,7 +796,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
 
     /**
      * Execute the built query
-     * @throws \Exception
+     * @throws InvalidArgumentException
      * @throws \ReflectionException if Row object cannot be created
      */
     protected function execute(): void
@@ -842,6 +856,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
      * @param string $column column name to return or an empty string for the whole row
      * @return string|null|Row|false string or null with $column, Row without $column, false if there is no row
      * @throws \Exception
+     * @throws InvalidArgumentException
      */
     public function fetch(string $column = '')
     {
@@ -859,6 +874,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
      * Fetch all rows as associative array
      *
      * @param string $value column name used for an array value or an empty string for the whole row
+     * @throws InvalidArgumentException
      */
     public function fetchPairs(string $key, string $value = ''): array
     {
@@ -938,6 +954,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
 
     /**
      * @throws \Exception
+     * @throws InvalidArgumentException
      */
     public function rewind(): void
     {
@@ -991,6 +1008,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
      * @param string|array $key row ID or array for where conditions
      * @return Row|null
      * @throws \Exception
+     * @throws InvalidArgumentException
      */
     #[\ReturnTypeWillChange]
     public function offsetGet($key)
@@ -1031,6 +1049,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
      * @param string $key row ID
      * @param Row $value
      * @throws \Exception
+     * @throws InvalidArgumentException
      */
     public function offsetSet($key, $value): void
     {
@@ -1043,6 +1062,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
      *
      * @param string $key row ID
      * @throws \Exception
+     * @throws InvalidArgumentException
      */
     public function offsetUnset($key): void
     {
@@ -1054,6 +1074,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
 
     /**
      * @throws \Exception
+     * @throws InvalidArgumentException
      */
     public function jsonSerialize(): array
     {

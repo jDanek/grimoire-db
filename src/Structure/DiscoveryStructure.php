@@ -10,7 +10,7 @@ use Psr\SimpleCache\CacheInterface;
 use Psr\SimpleCache\InvalidArgumentException;
 
 /**
- * Structure reading meta-informations from the database
+ * Structure reading meta-information's from the database
  */
 class DiscoveryStructure implements StructureInterface
 {

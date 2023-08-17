@@ -45,6 +45,7 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
 
     /**
      * Get referenced row
+     * @throws \ReflectionException
      */
     public function ref(string $name): ?Row
     {
@@ -79,6 +80,7 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
 
     /**
      * Test if referenced row exists
+     * @throws \ReflectionException
      */
     public function __isset(string $name): bool
     {
