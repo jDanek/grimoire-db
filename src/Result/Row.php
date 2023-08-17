@@ -123,7 +123,13 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
             $this->result->getTable()
         );
         $column = $dbConfig->getStructure()->getReferencingColumn($table, $this->result->getTable());
-        $return = new MultiResult($table, $this->result, $column, (string)$this[$this->result->getPrimary()]);
+        $return = new MultiResult(
+            $table,
+            $this->database,
+            $this->result,
+            $column,
+            (string)$this[$this->result->getPrimary()]
+        );
         $return->where("$table.$column", array_keys((array)$this->result->getRows())); // (array) - is null after insert
         if (!empty($where)) {
             call_user_func_array([$return, 'where'], $where);

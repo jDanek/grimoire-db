@@ -51,7 +51,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
     /** @var int|null */
     protected $unionOffset = null;
 
-    /** @var Row[] */
+    /** @var array<Row> */
     protected $data;
     /** @var array */
     protected $referencing = [];
@@ -189,15 +189,22 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
         return $this->primary;
     }
 
-    /**
-     * @return array
-     */
     public function getRows(): array
     {
         return $this->rows;
     }
 
-    public function &getReferenced(?string $name = null): ?Result
+    public function &getAggregation(?string $query): ?array
+    {
+        return $this->aggregation[$query];
+    }
+
+    public function &getReferencing(?string $key): ?array
+    {
+        return $this->referencing[$key];
+    }
+
+    public function &getReferenced(?string $name): ?Result
     {
         return $this->referenced[$name];
     }
@@ -736,7 +743,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
     public function union(Result $result, bool $all = false): self
     {
         $this->union[] = ' UNION ' . ($all ? 'ALL ' : '') . "($result)";
-        $this->parameters = array_merge($this->parameters, $result->parameters);
+        $this->parameters = array_merge($this->parameters, $result->getParameters());
         return $this;
     }
 

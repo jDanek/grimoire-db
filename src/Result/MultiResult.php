@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Grimoire\Result;
 
+use Grimoire\Database;
 use Psr\SimpleCache\InvalidArgumentException;
 
 /**
@@ -19,9 +20,9 @@ class MultiResult extends Result
     private $active;
 
     /** @access protected must be public because it is called from Row */
-    public function __construct(string $table, Result $result, string $column, string $active)
+    public function __construct(string $table, Database $database, Result $result, string $column, string $active)
     {
-        parent::__construct($table, $result->database);
+        parent::__construct($table, $database);
         $this->result = $result;
         $this->column = $column;
         $this->active = $active;
@@ -124,7 +125,7 @@ class MultiResult extends Result
             $query .= ' WHERE ' . implode($this->where);
         }
         $query .= " GROUP BY $column";
-        $aggregation = &$this->result->aggregation[$query];
+        $aggregation = &$this->result->getAggregation($query);
         if (!isset($aggregation)) {
             $aggregation = [];
             foreach ($this->query($query, $this->parameters)->get_result() as $row) {
@@ -149,7 +150,7 @@ class MultiResult extends Result
     protected function execute(): void
     {
         if (empty($this->rows)) {
-            $referencing = &$this->result->referencing[$this->__toString()];
+            $referencing = &$this->result->getReferencing($this->__toString());
             if (!isset($referencing)) {
                 if (!$this->limit || count($this->result->getRows()) <= 1 || !empty($this->union)) {
                     parent::execute();
