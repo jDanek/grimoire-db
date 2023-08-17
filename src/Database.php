@@ -55,6 +55,15 @@ class Database
     /**
      * Get table data
      *
+     * Supported $where formats:
+     * -------------------------
+     * - ['column_name = ? AND another > ?', [param1, ...]]
+     * - ['column_name', instance of Result class]
+     * - ['column_name', [param1, param2, ...]]
+     * - ['column_name' => 'param1', ...]
+     * - ['column_name > ?' => 'param1', 'another' = 45, ...]
+     * - ['column_name' => ['param1', ...]]
+     *
      * @param array $where (['condition', ['value', ...]]) passed to Result::where()
      */
     public function table(string $table, array $where = []): Result
