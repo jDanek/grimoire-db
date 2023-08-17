@@ -58,7 +58,9 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
      */
     public function __get(string $name): ?Row
     {
-        $column = $this->database->getConfig()->getStructure()->getReferencedColumn($name, $this->result->getTable());
+        $dbConfig = $this->database->getConfig();
+
+        $column = $dbConfig->getStructure()->getReferencedColumn($name, $this->result->getTable());
 
         $referenced = &$this->result->getReferenced($name);
         if (!isset($referenced)) {
@@ -69,12 +71,12 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
                 }
             }
 
-            $table = $this->database->getConfig()->getStructure()->getReferencedTable($name, $this->result->getTable());
+            $table = $dbConfig->getStructure()->getReferencedTable($name, $this->result->getTable());
             $referenced = new Result($table, $this->database);
-            $referenced->where("$table." . $this->database->getConfig()->getStructure()->getPrimary($table), array_keys($keys));
+            $referenced->where("$table." . $dbConfig->getStructure()->getPrimary($table), array_keys($keys));
         }
         // create new row instance
-        $class = new \ReflectionClass($this->database->getConfig()->getRowClass());
+        $class = new \ReflectionClass($dbConfig->getRowClass());
         return $class->newInstanceArgs([[], $referenced, $this->database, $this[$column]]);
     }
 
@@ -114,11 +116,13 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
      */
     public function __call(string $relatedTableName, array $where = []): MultiResult
     {
-        $table = $this->database->getConfig()->getStructure()->getReferencingTable(
+        $dbConfig = $this->database->getConfig();
+
+        $table = $dbConfig->getStructure()->getReferencingTable(
             $relatedTableName,
             $this->result->getTable()
         );
-        $column = $this->database->getConfig()->getStructure()->getReferencingColumn($table, $this->result->getTable());
+        $column = $dbConfig->getStructure()->getReferencingColumn($table, $this->result->getTable());
         $return = new MultiResult($table, $this->result, $column, (string)$this[$this->result->getPrimary()]);
         $return->where("$table.$column", array_keys((array)$this->result->getRows())); // (array) - is null after insert
         if (!empty($where)) {

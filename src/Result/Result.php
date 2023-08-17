@@ -264,8 +264,10 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
      */
     protected function query(string $query, array $parameters = [])
     {
-        if ($this->database->getConfig()->getDebug()) {
-            if (!is_callable($this->database->getConfig()->getDebug())) {
+        $dbConfig = $this->database->getConfig();
+
+        if ($dbConfig->getDebug()) {
+            if (!is_callable($dbConfig->getDebug())) {
                 $debug = "$query;";
                 if (!empty($parameters)) {
                     $debug .= ' -- ' . implode(', ', array_map([$this, 'quote'], $parameters));
@@ -279,12 +281,12 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
                     }
                 }
                 //error_log("$backtrace[file]:$backtrace[line]:$debug\n", 0);
-            } elseif (call_user_func($this->database->getConfig()->getDebug(), $query, $parameters) === false) {
+            } elseif (call_user_func($dbConfig->getDebug(), $query, $parameters) === false) {
                 return false;
             }
         }
 
-        $return = $this->database->getConfig()->getConnection()->prepare($query);
+        $return = $dbConfig->getConnection()->prepare($query);
         if ($return !== false) {
             $paramsCount = count($parameters);
             if ($paramsCount > 0) {
@@ -300,8 +302,8 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
             $return = false;
         }
 
-        if ($this->database->getConfig()->getDebugTimer()) {
-            call_user_func($this->database->getConfig()->getDebugTimer());
+        if ($dbConfig->getDebugTimer()) {
+            call_user_func($dbConfig->getDebugTimer());
         }
         return $return;
     }
