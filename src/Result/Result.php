@@ -52,7 +52,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
     protected $unionOffset = null;
 
     /** @var array<Row> */
-    protected $data;
+    protected $data = [];
     /** @var array */
     protected $referencing = [];
     /** @var array */
@@ -102,7 +102,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
             $this->database->getConfig()->getCache()->set("$this->table;" . implode(',', $this->conditions), $access);
         }
         $this->rows = [];
-        unset($this->data);
+        $this->data = [];
     }
 
     protected function limitString(?int $limit, ?int $offset = null): string
