@@ -220,8 +220,9 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
      * @param mixed $key
      * @throws \Exception
      */
-    public function get($key): ?Row
+    public function get($key, bool $single = true): ?Row
     {
+        $this->single = $single;
         $result = $this->offsetGet($key);
         return $result instanceof Row ? $result : null;
     }
