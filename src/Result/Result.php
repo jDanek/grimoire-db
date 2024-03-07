@@ -102,7 +102,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
             $this->database->getConfig()->getCache()->set("$this->table;" . implode(',', $this->conditions), $access);
         }
         $this->rows = [];
-        $this->data = [];
+        unset($this->data);
     }
 
     protected function limitString(?int $limit, ?int $offset = null): string
