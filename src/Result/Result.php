@@ -334,6 +334,10 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
      */
     protected function quote($val): string
     {
+        if (is_string($val) && empty($val)) {
+            return "''";
+        }
+
         if (!isset($val) || $val == null) {
             return 'NULL';
         }
