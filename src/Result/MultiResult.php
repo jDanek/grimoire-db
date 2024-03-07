@@ -104,6 +104,11 @@ class MultiResult extends Result
         if (!$this->select) {
             array_unshift($args, "$this->table.$this->column");
         }
+        // php 7.4 or later
+        if (version_compare(PHP_VERSION, '7.4.0', '>=')) {
+            return parent::select(...$args);
+        }
+        // php 7.3 or earlier
         return call_user_func_array([$this, 'parent::select'], $args);
     }
 
@@ -113,6 +118,11 @@ class MultiResult extends Result
             $this->order[] = "$this->table.$this->column" . (preg_match('~\\bDESC$~i', $columns) ? ' DESC' : '');
         }
         $args = func_get_args();
+        // php 7.4 or later
+        if (version_compare(PHP_VERSION, '7.4.0', '>=')) {
+            return parent::order(...$args);
+        }
+        // php 7.3 or earlier
         return call_user_func_array([$this, 'parent::order'], $args);
     }
 
