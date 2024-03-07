@@ -52,7 +52,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
     protected $unionOffset = null;
 
     /** @var array<Row> */
-    protected $data;
+    protected $data = [];
     /** @var array */
     protected $referencing = [];
     /** @var array */
@@ -102,7 +102,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
             $this->database->getConfig()->getCache()->set("$this->table;" . implode(',', $this->conditions), $access);
         }
         $this->rows = [];
-        unset($this->data);
+        $this->data = [];
     }
 
     protected function limitString(?int $limit, ?int $offset = null): string
@@ -220,8 +220,9 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
      * @param mixed $key
      * @throws \Exception
      */
-    public function get($key): ?Row
+    public function get($key, bool $single = true): ?Row
     {
+        $this->single = $single;
         $result = $this->offsetGet($key);
         return $result instanceof Row ? $result : null;
     }
