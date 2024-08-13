@@ -731,6 +731,22 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
     }
 
     /**
+     * Sets offset using page number, more calls rewrite old values.
+     */
+    public function page(int $page, int $itemsPerPage, &$numOfPages = null): self
+    {
+        if (func_num_args() > 2) {
+            $numOfPages = (int)ceil($this->count('*') / $itemsPerPage);
+        }
+
+        if ($page < 1) {
+            $itemsPerPage = 0;
+        }
+
+        return $this->limit($itemsPerPage, ($page - 1) * $itemsPerPage);
+    }
+
+    /**
      * Set group clause, more calls rewrite old values
      * @throws InvalidArgumentException
      */

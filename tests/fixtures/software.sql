@@ -20,6 +20,7 @@ CREATE TABLE tag (
 INSERT INTO tag (id, name) VALUES (21, 'PHP');
 INSERT INTO tag (id, name) VALUES (22, 'MySQL');
 INSERT INTO tag (id, name) VALUES (23, 'JavaScript');
+INSERT INTO tag (id, name) VALUES (24, 'TypeScript');
 
 CREATE TABLE application (
   id int NOT NULL,

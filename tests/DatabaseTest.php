@@ -408,7 +408,7 @@ class DatabaseTest extends TestCase
                 $this->db->table('application', ['id', [null]]),
                 $this->db->table('application', ['id', $this->db->table('application')]),
                 $this->db->table('application', ['id < ?', [4]])->where('maintainer_id IS NOT NULL'),
-                $this->db->table('application', ['id < ?'=> 4, 'author_id' => 12]),
+                $this->db->table('application', ['id < ?' => 4, 'author_id' => 12]),
             ] as $result
         ) {
             $data[] = implode(
@@ -546,6 +546,7 @@ class DatabaseTest extends TestCase
         }
 
         $this->assertEquals([
+            24,
             23,
             22,
             21,
@@ -733,10 +734,10 @@ class DatabaseTest extends TestCase
 
     public function testUpdatePrimary()
     {
-        $application = $this->db->table('tag')->insert(['id' => 24, 'name' => 'HTML']);
-        $this->assertEquals(24, $application['id']);
-        $application['id'] = 25;
+        $application = $this->db->table('tag')->insert(['id' => 25, 'name' => 'HTML']);
         $this->assertEquals(25, $application['id']);
+        $application['id'] = 26;
+        $this->assertEquals(26, $application['id']);
         $this->assertEquals(1, $application->update());
         $this->assertEquals(1, $application->delete());
     }
@@ -851,5 +852,54 @@ class DatabaseTest extends TestCase
                 'Dibi: MySQL',
             ],
         ], $data);
+    }
+
+    public function testPageFirstPageOneItem()
+    {
+        $numOfPages = 0;
+        $tags = $this->db->table('tag')->page(1, 1, $numOfPages);
+
+        $this->assertEquals(1, count($tags)); // one item on first page
+        $this->assertEquals(4, $numOfPages); // four pages total
+
+        // calling the same without the $numOfPages reference
+        unset($tags);
+        $tags = $this->db->table('tag')->page(1, 1);
+        $this->assertEquals(1, count($tags)); // one item on first page
+    }
+
+    public function testPagSecondPageThreeItems()
+    {
+        $numOfPages = 0;
+        $tags = $this->db->table('tag')->page(2, 3, $numOfPages);
+
+        $this->assertEquals(1, count($tags)); // one item on second page
+        $this->assertEquals(2, $numOfPages); // two pages total
+
+        // calling the same without the $numOfPages reference
+        unset($tags);
+        $tags = $this->db->table('tag')->page(2, 3);
+        $this->assertEquals(1, count($tags)); // one item on second page
+    }
+
+    public function testPageNoItems()
+    {
+        // page with no items
+        $tags = $this->db->table('tag')->page(10, 4);
+        $this->assertEquals(0, count($tags)); // one item on second page
+    }
+
+    public function testPageNoItemsPageNotInRange()
+    {
+        // page with no items (page not in range)
+        $tags = $this->db->table('tag')->page(100, 4);
+        $this->assertEquals(0, count($tags)); // one item on second page
+    }
+
+    public function testPageLessItemsThenItemsPerPage()
+    {
+        // less items than $itemsPerPage
+        $tags = $this->db->table('tag')->page(1, 100);
+        $this->assertEquals(4, count($tags)); // all four items from db
     }
 }
