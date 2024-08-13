@@ -23,6 +23,9 @@ class Debug
             }, $params);
 
             foreach ($params as $val) {
+                if (is_array($val)) {
+                    $val = implode(',', $val);
+                }
                 $query = preg_replace('/\?/', (string)$val, $query, 1);
             }
         }

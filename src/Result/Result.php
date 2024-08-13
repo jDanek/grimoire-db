@@ -325,6 +325,9 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
         if ($val instanceof \DateTime) {
             return $val->format('Y-m-d H:i:s');
         }
+        if (is_array($val)) {
+            return implode(',', $val);
+        }
         return $val;
     }
 
