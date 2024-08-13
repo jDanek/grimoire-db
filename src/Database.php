@@ -10,18 +10,13 @@ use Grimoire\Util\StringFormatter;
 
 /**
  * Database representation
- * @property-write string $transaction Assign 'BEGIN', 'COMMIT' or 'ROLLBACK' to start or stop transaction
  */
 class Database
 {
-    public const TRANSACTION_BEGIN = 'BEGIN';
-    public const TRANSACTION_COMMIT = 'COMMIT';
-    public const TRANSACTION_ROLLBACK = 'ROLLBACK';
-
     /** @var Config */
     protected $config;
-    /** @var StringFormatter */
-    protected $stringFormatter;
+    /** @var int */
+    private $transactionDepth = 0;
     /** @var array */
     protected static $queue = null;
 
@@ -97,48 +92,33 @@ class Database
     }
 
 
-    /* --- FORMATTING --- */
-
-    /**
-     * Set write-only properties
-     */
-    public function __set(string $name, $value): void
-    {
-        if (in_array($name, ['debug', 'freeze', 'debugTimer', 'rowClass', 'jsonAsArray'])) {
-            try {
-                call_user_func([$this->config, 'set' . ucfirst($name)], $value);
-            } catch (\Exception $e) {
-                // invalid ignore
-            }
-        }
-        if ($name === 'transaction') {
-            switch (strtoupper($value)) {
-                case self::TRANSACTION_BEGIN:
-                    $this->beginTransaction();
-                    break;
-                case self::TRANSACTION_COMMIT:
-                    $this->commit();
-                    break;
-                case self::TRANSACTION_ROLLBACK:
-                    $this->rollback();
-                    break;
-            }
-        }
-    }
+    /* --- TRANSACTIONS --- */
 
     public function beginTransaction(): void
     {
-        $this->config->getConnection()->begin_transaction();
+        if ($this->transactionDepth !== 0) {
+            throw new \LogicException(__METHOD__ . '() call is forbidden inside a transaction() callback');
+        }
+
+        $this->getConnection()->begin_transaction();
     }
 
     public function commit(): void
     {
-        $this->config->getConnection()->commit();
+        if ($this->transactionDepth !== 0) {
+            throw new \LogicException(__METHOD__ . '() call is forbidden inside a transaction() callback');
+        }
+
+        $this->getConnection()->commit();
     }
 
-    public function rollback(): void
+    public function rollBack(): void
     {
-        return $this->config->getStringFormatter()->formatValue($val);
+        if ($this->transactionDepth !== 0) {
+            throw new \LogicException(__METHOD__ . '() call is forbidden inside a transaction() callback');
+        }
+
+        $this->getConnection()->rollback();
     }
 
 
