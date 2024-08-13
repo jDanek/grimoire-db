@@ -632,7 +632,9 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
                 $condition = "($condition) IS NOT NULL AND $condition IS NULL"; // $condition = 'NOT id'
             }
         } elseif (!is_array($parameters)) { // where('column', 'x')
-            $condition .= ' = ' . $this->quote($parameters);
+            $negate = $condition[0] === '!';
+            $condition = ltrim($condition, '!');
+            $condition .= ($negate ? ' != ' : ' = ') . $this->quote($parameters);
         } else { // where('column', array(1, 2))
             $condition = $this->whereIn($condition, $parameters);
         }
