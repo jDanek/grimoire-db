@@ -103,6 +103,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
         }
         $this->rows = [];
         unset($this->data);
+        $this->data = [];
     }
 
     protected function limitString(?int $limit, ?int $offset = null): string
