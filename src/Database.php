@@ -122,6 +122,26 @@ class Database
     }
 
 
+    /* --- FORMATTERS --- */
+
+    /**
+     * @param mixed $val
+     */
+    public function quote($val): string
+    {
+        return $this->config->getStringFormatter()->quote($val);
+    }
+
+    /**
+     * @param mixed $val
+     * @return float|int|string
+     */
+    public function formatValue($val)
+    {
+        return $this->config->getStringFormatter()->formatValue($val);
+    }
+
+
     /* --- HELPERS --- */
 
     public static function literal(string $value, ...$parameters): Literal

@@ -44,7 +44,7 @@ class StringFormatter
 
         $val = $this->formatValue($val);
         if (is_float($val)) {
-            return sprintf('%F', $val); // otherwise depends on set_locale()
+            return sprintf('%.14F', $val); // otherwise depends on set_locale()
         }
 
         if (is_numeric($val)) {
