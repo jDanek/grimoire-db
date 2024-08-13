@@ -130,6 +130,11 @@ class Database
         $this->config->getConnection()->rollback();
     }
 
+    public static function literal(string $value, ...$parameters): Literal
+    {
+        return new Literal($value, $parameters);
+    }
+
     /**
      * Deferred call
      *

@@ -312,7 +312,7 @@ class DatabaseTest extends TestCase
         $application = $this->db->table('application')->insert([
             'id' => $id,
             'author_id' => $this->db->row('author', 12),
-            'title' => new Literal("'Texy'"),
+            'title' => new Literal("'Texy'"), // or shorthand $db::literal("'Texy'")
             'web' => '',
             'slogan' => 'The best humane Web text generator',
         ]);
@@ -653,7 +653,7 @@ class DatabaseTest extends TestCase
         $data = [];
         foreach (
             $this->db->table('author')
-                ->select(new Literal('? + ?', 1, 2))
+                ->select(new Literal('? + ?', 1, 2)) // or shorthand $db::literal('? + ?', 1, 2)
                 ->fetch() as $val
         ) {
             $data[] = $val;
@@ -693,7 +693,7 @@ class DatabaseTest extends TestCase
             'id' => 5,
             'author_id' => 11,
             'title' => $date,
-            'slogan' => new Literal('?', $date),
+            'slogan' => new Literal('?', $date), // or shorthand $db::literal('?', $date)
         ]);
 
         $application = $this->db->table('application')->where("title = ?", $date)->fetch();
