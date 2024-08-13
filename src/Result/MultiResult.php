@@ -71,7 +71,7 @@ class MultiResult extends Result
 
     protected function single(): void
     {
-        $this->where[0] = "($this->column = " . $this->quote($this->active) . ')';
+        $this->where[0] = "($this->column = " . $this->database->quote($this->active) . ')';
     }
 
     /**
@@ -169,11 +169,11 @@ class MultiResult extends Result
                     $first = true;
                     foreach ($this->result->getRows() as $val) {
                         if ($first) {
-                            $result->where[0] = "$this->column = " . $this->quote($val);
+                            $result->where[0] = "$this->column = " . $this->database->quote($val);
                             $first = false;
                         } else {
                             $clone = clone $this;
-                            $clone->where[0] = "$this->column = " . $this->quote($val);
+                            $clone->where[0] = "$this->column = " . $this->database->quote($val);
                             $result->union($clone);
                         }
                     }

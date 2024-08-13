@@ -279,7 +279,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
             if (!is_callable($dbConfig->getDebug())) {
                 $debug = "$query;";
                 if (!empty($parameters)) {
-                    $debug .= ' -- ' . implode(', ', array_map([$this, 'quote'], $parameters));
+                    $debug .= ' -- ' . implode(', ', array_map([$this->database, 'quote'], $parameters));
                 }
                 $pattern = '(^' . preg_quote(dirname(__FILE__)) . '(\\.php$|[/\\\\]))'; // can be static
                 foreach (debug_backtrace() as $backtrace) {
@@ -299,7 +299,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
         if ($return !== false) {
             $paramsCount = count($parameters);
             if ($paramsCount > 0) {
-                $bindParams = array_map([$this, 'formatValue'], $parameters);
+                $bindParams = array_map([$this->database, 'formatValue'], $parameters);
                 $types = str_repeat('s', $paramsCount);
                 $bindParams = array_values($bindParams); // mysqli does not support named parameters
                 $return->bind_param($types, ...$bindParams);
@@ -315,69 +315,6 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
             call_user_func($dbConfig->getDebugTimer());
         }
         return $return;
-    }
-
-    /**
-     * @param mixed $val
-     * @return float|int|string
-     */
-    protected function formatValue($val)
-    {
-        if ($val instanceof \DateTime) {
-            return $val->format('Y-m-d H:i:s');
-        }
-        if (is_array($val)) {
-            return implode(',', $val);
-        }
-        return $val;
-    }
-
-    /**
-     * @param mixed $val
-     * @return string
-     */
-    protected function quote($val): string
-    {
-        if (is_string($val) && empty($val)) {
-            return "''";
-        }
-
-        if (!isset($val) || $val == null) {
-            return 'NULL';
-        }
-
-        if (is_bool($val)) {
-            return $val ? '1' : '0';
-        }
-
-        if (is_array($val)) { // (a, b) IN ((1, 2), (3, 4))
-            return '(' . implode(', ', array_map([$this, 'quote'], $val)) . ')';
-        }
-
-        $val = $this->formatValue($val);
-        if (is_float($val)) {
-            return sprintf('%F', $val); // otherwise depends on set_locale()
-        }
-
-        if (is_numeric($val)) {
-            $val = (0 + $val);
-
-            if (is_int($val)) {
-                return sprintf('%d', $val);
-            }
-
-            return sprintf('%.14F', $val);
-        }
-
-        if ($val instanceof Literal) { // number or SQL code - for example 'NOW()'
-            return (string)$val;
-        }
-
-        if ($val instanceof Row) {
-            $val = (string)$val;
-        }
-
-        return '\'' . $this->database->getConfig()->getConnection()->real_escape_string($val) . '\'';
     }
 
     /**
@@ -409,7 +346,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
                 if ($value instanceof \Traversable) {
                     $value = iterator_to_array($value);
                 }
-                $values[] = $this->quote($value);
+                $values[] = $this->database->quote($value);
                 foreach ($value as $val) {
                     if ($val instanceof Literal && $val->getParameters()) {
                         $parameters = array_merge($parameters, $val->getParameters());
@@ -456,7 +393,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
         }
 
         if (!isset($data[$this->primary])) {
-            $id = $this->database->getConfig()->getConnection()->insert_id;
+            $id = $this->database->getConnection()->insert_id;
             if ($id) {
                 $data[$this->primary] = $id;
             }
@@ -485,7 +422,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
         $parameters = [];
         foreach ($data as $key => $val) {
             // doesn't use binding because $this->parameters can be filled by ?
-            $values[] = "$key = " . $this->quote($val);
+            $values[] = "$key = " . $this->database->quote($val);
             if ($val instanceof Literal && $val->getParameters()) {
                 $parameters = array_merge($parameters, $val->getParameters());
             }
@@ -518,14 +455,14 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
             $update = $insert;
         }
         $insert = $unique + $insert;
-        $values = '(' . implode(', ', array_keys($insert)) . ') VALUES ' . $this->quote($insert);
+        $values = '(' . implode(', ', array_keys($insert)) . ') VALUES ' . $this->database->quote($insert);
 
         $set = [];
         if (empty($update)) {
             $update = $unique;
         }
         foreach ($update as $key => $val) {
-            $set[] = "$key = " . $this->quote($val);
+            $set[] = "$key = " . $this->database->quote($val);
         }
         return $this->insert("$values ON DUPLICATE KEY UPDATE " . implode(', ', $set));
     }
@@ -535,7 +472,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
      */
     public function insertId(): int
     {
-        return (int)$this->database->getConfig()->getConnection()->insert_id;
+        return (int)$this->database->getConnection()->insert_id;
     }
 
     /**
@@ -624,7 +561,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
                 if ($clone instanceof MultiResult && count($row) > 1) {
                     array_shift($row);
                 }
-                $in[] = $this->quote((count($row) === 1 ? $row[0] : $row));
+                $in[] = $this->database->quote((count($row) === 1 ? $row[0] : $row));
             }
             if (!empty($in)) {
                 $condition .= ' IN (' . implode(', ', $in) . ')';
@@ -634,7 +571,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
         } elseif (!is_array($parameters)) { // where('column', 'x')
             $negate = $condition[0] === '!';
             $condition = ltrim($condition, '!');
-            $condition .= ($negate ? ' != ' : ' = ') . $this->quote($parameters);
+            $condition .= ($negate ? ' != ' : ' = ') . $this->database->quote($parameters);
         } else { // where('column', array(1, 2))
             $condition = $this->whereIn($condition, $parameters);
         }
@@ -651,7 +588,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
             $condition = "($condition) IS NOT NULL AND $condition IS NULL";
         } else {
             $column = $condition;
-            $condition .= ' IN ' . $this->quote($parameters);
+            $condition .= ' IN ' . $this->database->quote($parameters);
             $nulls = array_filter($parameters, 'is_null');
             if (!empty($nulls)) {
                 $condition = "$condition OR $column IS NULL";

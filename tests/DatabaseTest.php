@@ -226,7 +226,7 @@ class DatabaseTest extends TestCase
     {
         $config = Config::builder(
             $this->connection,
-            new DiscoveryStructure($this->connection, null, '%s_id')
+            DiscoveryStructure::create($this->connection, null, '%s_id')
         );
         $db = new Database($config);
 

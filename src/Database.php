@@ -6,6 +6,7 @@ namespace Grimoire;
 
 use Grimoire\Result\Result;
 use Grimoire\Result\Row;
+use Grimoire\Util\StringFormatter;
 
 /**
  * Database representation
@@ -19,6 +20,8 @@ class Database
 
     /** @var Config */
     protected $config;
+    /** @var StringFormatter */
+    protected $stringFormatter;
     /** @var array */
     protected static $queue = null;
 
@@ -30,6 +33,11 @@ class Database
     public function getConfig(): Config
     {
         return $this->config;
+    }
+
+    public function getConnection(): \Mysqli
+    {
+        return $this->config->getConnection();
     }
 
     /**
@@ -88,6 +96,9 @@ class Database
         return $result->get($id);
     }
 
+
+    /* --- FORMATTING --- */
+
     /**
      * Set write-only properties
      */
@@ -127,13 +138,19 @@ class Database
 
     public function rollback(): void
     {
-        $this->config->getConnection()->rollback();
+        return $this->config->getStringFormatter()->formatValue($val);
     }
+
+
+    /* --- HELPERS --- */
 
     public static function literal(string $value, ...$parameters): Literal
     {
         return new Literal($value, $parameters);
     }
+
+
+    /* --- DEFERRED CALL --- */
 
     /**
      * Deferred call

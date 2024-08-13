@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace Grimoire\Util;
 
 use Grimoire\Literal;
+use Grimoire\Result\Row;
 
-class StringQuoter
+class StringFormatter
 {
     /** @var \Mysqli */
     private $connection;
@@ -18,10 +19,13 @@ class StringQuoter
 
     /**
      * @param mixed $val
-     * @return string
      */
     public function quote($val): string
     {
+        if (is_string($val) && empty($val)) {
+            return "''";
+        }
+
         if (!isset($val) || $val == null) {
             return 'NULL';
         }
@@ -38,18 +42,46 @@ class StringQuoter
             $val = $val->format('Y-m-d H:i:s'); //! may be driver specific
         }
 
-        if (is_int($val)) {
-            return sprintf('%d', $val);
+        $val = $this->formatValue($val);
+        if (is_float($val)) {
+            return sprintf('%F', $val); // otherwise depends on set_locale()
         }
 
-        if (is_float($val)) {
-            return sprintf('%.14F', $val); // otherwise depends on set_locale()
+        if (is_numeric($val)) {
+            $val = (0 + $val);
+
+            if (is_int($val)) {
+                return sprintf('%d', $val);
+            }
+
+            return sprintf('%.14F', $val);
         }
 
         if ($val instanceof Literal) { // number or SQL code - for example 'NOW()'
             return (string)$val;
         }
 
+        if ($val instanceof Row) {
+            $val = (string)$val;
+        }
+
         return '\'' . $this->connection->real_escape_string($val) . '\'';
+    }
+
+    /**
+     * @param mixed $val
+     * @return float|int|string
+     */
+    public function formatValue($val)
+    {
+        if ($val instanceof \DateTime) {
+            return $val->format('Y-m-d H:i:s');
+        }
+
+        if (is_array($val)) {
+            return implode(',', $val);
+        }
+
+        return $val;
     }
 }

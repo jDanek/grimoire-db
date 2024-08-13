@@ -8,6 +8,7 @@ use Grimoire\Cache\BlackHoleDriver;
 use Grimoire\Result\Row;
 use Grimoire\Structure\ConventionStructure;
 use Grimoire\Structure\StructureInterface;
+use Grimoire\Util\StringFormatter;
 use Psr\SimpleCache\CacheInterface;
 
 class Config
@@ -18,6 +19,9 @@ class Config
     private $structure = null;
     /** @var CacheInterface */
     private $cache = null;
+    /** @var StringFormatter */
+    private $stringFormatter;
+
     /** @var bool|callable */
     private $debug = false;
     /** @var callable */
@@ -45,6 +49,12 @@ class Config
         $this->setConnection($connection);
         $this->setStructure($structure);
         $this->setCache($cache);
+    }
+
+    public function getStringFormatter(): StringFormatter
+    {
+        $this->stringFormatter = $this->stringFormatter ?: new StringFormatter($this->connection);
+        return $this->stringFormatter;
     }
 
     public function getConnection(): \Mysqli

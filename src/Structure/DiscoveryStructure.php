@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Grimoire\Structure;
 
 use Grimoire\Cache\BlackHoleDriver;
-use Grimoire\Util\StringQuoter;
+use Grimoire\Util\StringFormatter;
 use Psr\SimpleCache\CacheInterface;
 use Psr\SimpleCache\InvalidArgumentException;
 
@@ -22,30 +22,44 @@ class DiscoveryStructure implements StructureInterface
     protected $structure = [];
     /** @var string */
     protected $foreign;
-    /** @var StringQuoter */
-    protected $stringQuoter;
+
+    /** @var StringFormatter */
+    protected $stringFormatter;
+
+    /**
+     * @param \Mysqli $connection
+     * @param CacheInterface|null $cache
+     * @param string $foreign use "%s_id" to access $name . "_id" column in $row->$name
+     * @return DiscoveryStructure
+     * @throws InvalidArgumentException|\Throwable
+     */
+    public static function create(\Mysqli $connection, CacheInterface $cache = null, string $foreign = '%s'): self
+    {
+        return new self($connection, new StringFormatter($connection), $cache, $foreign);
+    }
 
     /**
      * Create autodiscovery structure
      *
      * @param \Mysqli $connection
+     * @param StringFormatter $stringFormatter
      * @param CacheInterface|null $cache
      * @param string $foreign use "%s_id" to access $name . "_id" column in $row->$name
-     * @throws InvalidArgumentException&\Throwable
+     * @throws InvalidArgumentException|\Throwable
      */
-    public function __construct(\Mysqli $connection, CacheInterface $cache = null, string $foreign = '%s')
+    public function __construct(\Mysqli $connection, StringFormatter $stringFormatter, CacheInterface $cache = null, string $foreign = '%s')
     {
         $this->connection = $connection;
         $this->cache = $cache ?? new BlackHoleDriver();
         $this->foreign = $foreign;
         $this->structure = $this->cache->get('structure');
 
-        $this->stringQuoter = new StringQuoter($this->connection);
+        $this->stringFormatter = $stringFormatter;
     }
 
     /**
      * Save data to cache
-     * @throws InvalidArgumentException&\Throwable
+     * @throws InvalidArgumentException|\Throwable
      */
     public function __destruct()
     {
@@ -83,8 +97,8 @@ class DiscoveryStructure implements StructureInterface
                 FROM information_schema.KEY_COLUMN_USAGE
                 WHERE TABLE_SCHEMA = DATABASE()
                 AND REFERENCED_TABLE_SCHEMA = DATABASE()
-                AND REFERENCED_TABLE_NAME = " . $this->stringQuoter->quote($table) . "
-                AND REFERENCED_COLUMN_NAME = " . $this->stringQuoter->quote(
+                AND REFERENCED_TABLE_NAME = " . $this->stringFormatter->quote($table) . "
+                AND REFERENCED_COLUMN_NAME = " . $this->stringFormatter->quote(
                         $this->getPrimary($table)
                     ) //! may not reference primary key
                 ) as $row
@@ -118,7 +132,7 @@ class DiscoveryStructure implements StructureInterface
                 FROM information_schema.KEY_COLUMN_USAGE
                 WHERE TABLE_SCHEMA = DATABASE()
                 AND REFERENCED_TABLE_SCHEMA = DATABASE()
-                AND TABLE_NAME = " . $this->stringQuoter->quote($table) . "
+                AND TABLE_NAME = " . $this->stringFormatter->quote($table) . "
             "
                 ) as $row
             ) {
