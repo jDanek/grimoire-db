@@ -45,22 +45,14 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
 
     /**
      * Get referenced row
+     *
      * @throws \ReflectionException
      */
-    public function ref(string $name): ?Row
-    {
-        return $this->__get($name);
-    }
-
-    /**
-     * Get referenced row
-     * @throws \ReflectionException
-     */
-    public function __get(string $name): ?Row
+    public function ref(string $name, ?string $viaColumn = null): ?Row
     {
         $dbConfig = $this->database->getConfig();
 
-        $column = $dbConfig->getStructure()->getReferencedColumn($name, $this->result->getTable());
+        $column = $viaColumn ?? $dbConfig->getStructure()->getReferencedColumn($name, $this->result->getTable());
 
         $referenced = &$this->result->getReferenced($name);
         if (!isset($referenced)) {
@@ -81,12 +73,22 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
     }
 
     /**
+     * Get referenced row
+     *
+     * @throws \ReflectionException
+     */
+    public function __get(string $name): ?Row
+    {
+        return $this->ref($name, $name);
+    }
+
+    /**
      * Test if referenced row exists
      * @throws \ReflectionException
      */
     public function __isset(string $name): bool
     {
-        $row = $this->__get($name);
+        $row = $this->ref($name);
         return $row[$row->result->getPrimary()] !== false;
     }
 
@@ -114,7 +116,7 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
      * @param string $relatedTableName table name
      * @param array $where (['condition', ['values']])
      */
-    public function __call(string $relatedTableName, array $where = []): MultiResult
+    public function related(string $relatedTableName, array $where = []): MultiResult
     {
         $dbConfig = $this->database->getConfig();
 
@@ -135,14 +137,6 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
             call_user_func_array([$return, 'where'], $where);
         }
         return $return;
-    }
-
-    /**
-     * Get referencing rows
-     */
-    public function related(string $relatedTableName, array $where = []): MultiResult
-    {
-        return $this->__call($relatedTableName, $where);
     }
 
     /**
