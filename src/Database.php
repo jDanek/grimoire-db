@@ -36,26 +36,6 @@ class Database
     }
 
     /**
-     * Direct call of the table name
-     *
-     * @param array $where (['condition', ['value', ...]]) passed to Result::where()
-     */
-    public function __call(string $table, array $where): Result
-    {
-        $return = new Result($this->config->getStructure()->getReferencingTable($table, ''), $this);
-        if (!empty($where)) {
-            // simple autodetect assoc array - if $where is an associative array,
-            // it is necessary to wrap it to avoid creating variables from the array keys
-            $keys = array_keys($where);
-            if ($keys !== array_keys($keys)) {
-                $where = ['condition' => $where];
-            }
-            call_user_func_array([$return, 'where'], $where);
-        }
-        return $return;
-    }
-
-    /**
      * Get table data
      *
      * Supported $where formats:
@@ -71,7 +51,17 @@ class Database
      */
     public function table(string $table, array $where = []): Result
     {
-        return $this->__call($table, $where);
+        $return = new Result($this->config->getStructure()->getReferencingTable($table, ''), $this);
+        if (!empty($where)) {
+            // simple autodetect assoc array - if $where is an associative array,
+            // it is necessary to wrap it to avoid creating variables from the array keys
+            $keys = array_keys($where);
+            if ($keys !== array_keys($keys)) {
+                $where = ['condition' => $where];
+            }
+            call_user_func_array([$return, 'where'], $where);
+        }
+        return $return;
     }
 
     /**

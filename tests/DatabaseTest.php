@@ -586,7 +586,7 @@ class DatabaseTest extends TestCase
             ->setStructure(new ConventionStructure('id', '%s_id', '%s', 'prefix_'));
 
         $prefix = new Database($config);
-        $applications = $prefix->application('author.name', 'Jakub Vrana');
+        $applications = $prefix->table('application', ['author.name', 'Jakub Vrana']);
 
         $this->assertEquals(
             'SELECT prefix_application.* FROM prefix_application LEFT JOIN prefix_author AS author ON prefix_application.author_id = author.id WHERE (author.name = \'Jakub Vrana\')',
@@ -619,10 +619,10 @@ class DatabaseTest extends TestCase
 
     public function testIn()
     {
-        $this->assertEquals(0, $this->db->application('maintainer_id', [])->count("*"));
-        $this->assertEquals(1, $this->db->application('maintainer_id', [11])->count("*"));
-        $this->assertEquals(2, $this->db->application("NOT maintainer_id", [11])->count("*"));
-        $this->assertEquals(3, $this->db->application("NOT maintainer_id", [])->count("*"));
+        $this->assertEquals(0, $this->db->table('application', ['maintainer_id', []])->count("*"));
+        $this->assertEquals(1, $this->db->table('application', ['maintainer_id', [11]])->count("*"));
+        $this->assertEquals(2, $this->db->table('application', ["NOT maintainer_id", [11]])->count("*"));
+        $this->assertEquals(3, $this->db->table('application', ["NOT maintainer_id", []])->count("*"));
     }
 
     public function testInMulti()
@@ -630,7 +630,7 @@ class DatabaseTest extends TestCase
         $data = [];
         foreach ($this->db->table('author')->order('id') as $author) {
             foreach (
-                $this->db->application_tag('application_id', $author->related('application'))->order(
+                $this->db->table('application_tag', ['application_id', $author->related('application')])->order(
                     "application_id, tag_id"
                 ) as $application_tag
             ) {
