@@ -73,44 +73,6 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
     }
 
     /**
-     * Get referenced row
-     *
-     * @throws \ReflectionException
-     */
-    public function __get(string $name): ?Row
-    {
-        return $this->ref($name, $name);
-    }
-
-    /**
-     * Test if referenced row exists
-     * @throws \ReflectionException
-     */
-    public function __isset(string $name): bool
-    {
-        $row = $this->ref($name);
-        return $row[$row->result->getPrimary()] !== false;
-    }
-
-    /**
-     * Store referenced value
-     */
-    public function __set(string $name, Row $value = null): void
-    {
-        $column = $this->database->getConfig()->getStructure()->getReferencedColumn($name, $this->result->getTable());
-        $this[$column] = $value;
-    }
-
-    /**
-     * Remove referenced column from data
-     */
-    public function __unset(string $name): void
-    {
-        $column = $this->database->getConfig()->getStructure()->getReferencedColumn($name, $this->result->getTable());
-        unset($this[$column]);
-    }
-
-    /**
      * Get referencing rows
      *
      * @param string $relatedTableName table name
@@ -177,6 +139,44 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
         $return = $result->where($this->result->getPrimary(), $this->primary)->delete();
         $this->primary = $this[$this->result->getPrimary()];
         return $return;
+    }
+
+    /**
+     * Get referenced row
+     *
+     * @throws \ReflectionException
+     */
+    public function __get(string $name): ?Row
+    {
+        return $this->ref($name, $name);
+    }
+
+    /**
+     * Test if referenced row exists
+     * @throws \ReflectionException
+     */
+    public function __isset(string $name): bool
+    {
+        $row = $this->ref($name);
+        return $row[$row->result->getPrimary()] !== false;
+    }
+
+    /**
+     * Store referenced value
+     */
+    public function __set(string $name, Row $value = null): void
+    {
+        $column = $this->database->getConfig()->getStructure()->getReferencedColumn($name, $this->result->getTable());
+        $this[$column] = $value;
+    }
+
+    /**
+     * Remove referenced column from data
+     */
+    public function __unset(string $name): void
+    {
+        $column = $this->database->getConfig()->getStructure()->getReferencedColumn($name, $this->result->getTable());
+        unset($this[$column]);
     }
 
     protected function access(string $key, bool $delete = false): bool
