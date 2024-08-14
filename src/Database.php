@@ -65,19 +65,13 @@ class Database
     }
 
     /**
-     * Get table row to use as $db->table[1]
-     */
-    public function __get(string $table): Result
-    {
-        return new Result($this->config->getStructure()->getReferencingTable($table, ''), $this, true);
-    }
-
-    /**
+     * Get table row
+     *
      * @throws \Exception
      */
     public function row(string $table, int $id): ?Row
     {
-        $result = $this->__get($table);
+        $result = new Result($this->config->getStructure()->getReferencingTable($table, ''), $this, true);;
         return $result->get($id);
     }
 

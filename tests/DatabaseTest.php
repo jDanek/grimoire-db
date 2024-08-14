@@ -667,7 +667,7 @@ class DatabaseTest extends TestCase
     public function testRowSet()
     {
         $application = $this->db->row('application', 1);
-        $application->author = $this->db->author[12];
+        $application->author = $this->db->row('author', 12);
         $this->assertEquals(1, $application->update());
         $application->update(['author_id' => 11]);
     }
