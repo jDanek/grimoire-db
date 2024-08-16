@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Grimoire\Test\Structure;
+namespace Grimoire\Test\Helpers;
 
 use Grimoire\Structure\ConventionStructure;
 

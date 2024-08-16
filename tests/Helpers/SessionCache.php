@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Grimoire\Test\Cache;
+namespace Grimoire\Test\Helpers;
 
 use Psr\SimpleCache\CacheInterface;
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace Grimoire\Test\Result;
+namespace Grimoire\Test\Helpers;
 
 use Grimoire\Result\Row;
 
