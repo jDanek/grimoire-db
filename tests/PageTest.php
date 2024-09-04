@@ -7,13 +7,17 @@ class PageTest extends AbstractGrimoireTestCase
 
     public function testPageFirstPageOneItem()
     {
-        $numOfPages = 0;
-        $tags = $this->db->table('tag')->page(1, 1, $numOfPages);
+        $totals = [
+            'total_pages' => 0,
+            'total_items' => 0
+        ];
+        $tags = $this->db->table('tag')->page(1, 1, $totals);
 
         $this->assertEquals(1, count($tags)); // one item on first page
-        $this->assertEquals(4, $numOfPages); // four pages total
+        $this->assertEquals(4, $totals['total_pages']); // four pages total
+        $this->assertEquals(4, $totals['total_items']); // four items total
 
-        // calling the same without the $numOfPages reference
+        // calling the same without the $totals reference
         unset($tags);
         $tags = $this->db->table('tag')->page(1, 1);
         $this->assertEquals(1, count($tags)); // one item on first page
@@ -21,13 +25,17 @@ class PageTest extends AbstractGrimoireTestCase
 
     public function testPageSecondPageThreeItems()
     {
-        $numOfPages = 0;
-        $tags = $this->db->table('tag')->page(2, 3, $numOfPages);
+        $totals = [
+            'total_pages' => 0,
+            'total_items' => 0
+        ];
+        $tags = $this->db->table('tag')->page(2, 3, $totals);
 
         $this->assertEquals(1, count($tags)); // one item on second page
-        $this->assertEquals(2, $numOfPages); // two pages total
+        $this->assertEquals(2, $totals['total_pages']); // two pages total
+        $this->assertEquals(4, $totals['total_items']); // four items total
 
-        // calling the same without the $numOfPages reference
+        // calling the same without the $totals reference
         unset($tags);
         $tags = $this->db->table('tag')->page(2, 3);
         $this->assertEquals(1, count($tags)); // one item on second page

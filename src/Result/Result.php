@@ -669,11 +669,17 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
 
     /**
      * Sets offset using page number, more calls rewrite old values.
+     * @param array|null $totals if the value $totals is specified, then it is populated with the results of the count. ['total_items' => int, 'total_pages' => int]
      */
-    public function page(int $page, int $itemsPerPage, &$numOfPages = null): self
+    public function page(int $page, int $itemsPerPage, ?array &$totals = null): self
     {
         if (func_num_args() > 2) {
-            $numOfPages = (int)ceil($this->count('*') / $itemsPerPage);
+            $totalItems = $this->count('*');
+            $totalPages = (int)ceil($totalItems / $itemsPerPage);
+            $totals = [
+                'total_items' => $totalItems,
+                'total_pages' => $totalPages,
+            ];
         }
 
         if ($page < 1) {
