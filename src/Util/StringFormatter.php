@@ -26,7 +26,7 @@ class StringFormatter
             return "''";
         }
 
-        if (!isset($val) || $val == null) {
+        if (!isset($val) || $val === null) {
             return 'NULL';
         }
 
