@@ -497,16 +497,21 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
     /**
      * Add select clause, more calls appends to the end
      *
-     * @param string $columns for example 'column, MD5(column) AS column_md5', empty string to reset previously set columns
+     * @param string|array $columns for example ['column1', 'column2'], 'column, MD5(column) AS column_md5', empty string to reset previously set columns
      * @return Result
      * @throws InvalidArgumentException
      */
-    public function select($columns): self
+    public function select(...$columns): self
     {
         $this->__destruct();
-        if ($columns !== '') {
-            foreach (func_get_args() as $columns) {
-                $this->select[] = $columns;
+
+        if (!empty($columns)) {
+            foreach ($columns as $column) {
+                if (is_array($column)) {
+                    $this->select = array_merge($this->select, $column);
+                } else {
+                    $this->select[] = $column;
+                }
             }
         } else {
             $this->select = [];

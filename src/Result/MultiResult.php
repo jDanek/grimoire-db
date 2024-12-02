@@ -98,9 +98,17 @@ class MultiResult extends Result
         return $return;
     }
 
-    public function select($columns): Result
+    public function select(...$columns): Result
     {
-        $args = func_get_args();
+        $args = [];
+        foreach ($columns as $column) {
+            if (is_array($column)) {
+                $args = array_merge($args, $column);
+            } else {
+                $args[] = $column;
+            }
+        }
+
         if (!$this->select) {
             array_unshift($args, "$this->table.$this->column");
         }
