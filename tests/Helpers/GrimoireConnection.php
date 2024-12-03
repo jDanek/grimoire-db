@@ -1,6 +1,6 @@
 <?php
 
-namespace Grimoire\Test;
+namespace Grimoire\Test\Helpers;
 
 use Grimoire\Config;
 use Grimoire\Database;
