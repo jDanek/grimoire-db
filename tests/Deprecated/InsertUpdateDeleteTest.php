@@ -1,8 +1,9 @@
 <?php
 
-namespace Grimoire\Test;
+namespace Grimoire\Test\Deprecated;
 
 use Grimoire\Literal;
+use Grimoire\Test\AbstractGrimoireTestCase;
 
 class InsertUpdateDeleteTest extends AbstractGrimoireTestCase
 {
@@ -70,7 +71,7 @@ class InsertUpdateDeleteTest extends AbstractGrimoireTestCase
         $data = [];
         $application = $this->db->row('application', 3);
         $application->related('application_tag')->insert(['tag_id' => 22], ['tag_id' => 23]);
-        foreach ($application->related('application_tag')->orderBy("tag_id DESC") as $application_tag) {
+        foreach ($application->related('application_tag')->order("tag_id DESC") as $application_tag) {
             $data[] = $application_tag['application_id'] . ' ' . $application_tag['tag_id'];
         }
         $application->related('application_tag', ['tag_id', [22, 23]])->delete();

@@ -1,6 +1,8 @@
 <?php
 
-namespace Grimoire\Test;
+namespace Grimoire\Test\Deprecated;
+
+use Grimoire\Test\AbstractGrimoireTestCase;
 
 class UnionTest extends AbstractGrimoireTestCase
 {
@@ -8,9 +10,9 @@ class UnionTest extends AbstractGrimoireTestCase
     public function testUnion()
     {
         $data = [];
-        $applications = $this->db->table('application')->select('id')->orderBy('id DESC')->limit(2);
-        $tags = $this->db->table('tag')->select('id')->orderBy('id')->limit(2);
-        foreach ($applications->union($tags)->orderBy("id DESC") as $row) {
+        $applications = $this->db->table('application')->select('id')->order('id DESC')->limit(2);
+        $tags = $this->db->table('tag')->select('id')->order('id')->limit(2);
+        foreach ($applications->union($tags)->order("id DESC") as $row) {
             $data[] = $row['id'];
         }
 
@@ -27,7 +29,7 @@ class UnionTest extends AbstractGrimoireTestCase
         $data = [];
         $applications = $this->db->table('application')->select('id');
         $tags = $this->db->table('tag')->select('id');
-        foreach ($applications->union($tags)->orderBy("id DESC") as $row) {
+        foreach ($applications->union($tags)->order("id DESC") as $row) {
             $data[] = $row['id'];
         }
 

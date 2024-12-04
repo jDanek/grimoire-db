@@ -1,8 +1,9 @@
 <?php
 
-namespace Grimoire\Test;
+namespace Grimoire\Test\Deprecated;
 
 use Grimoire\Database;
+use Grimoire\Test\AbstractGrimoireTestCase;
 
 class DeferredCallTest extends AbstractGrimoireTestCase
 {
@@ -11,13 +12,13 @@ class DeferredCallTest extends AbstractGrimoireTestCase
     {
         $data = [
             'authors' => [],
-            'tags' => []
+            'tags' => [],
         ];
 
         $db = $this->db;
         Database::then(function () use ($db, &$data) {
             $db->table('author')
-                ->orderBy("id")
+                ->order("id")
                 ->then(function ($authors) use (&$data) {
                     if (count($authors) > 0) {
                         foreach ($authors as $author) {
@@ -27,7 +28,7 @@ class DeferredCallTest extends AbstractGrimoireTestCase
                 });
 
             $db->table('application_tag')
-                ->orderBy("application_id, tag_id")
+                ->order("application_id, tag_id")
                 ->thenForeach(function ($application_tag) use (&$data) {
                     Database::then(
                         $application_tag->ref('application'),

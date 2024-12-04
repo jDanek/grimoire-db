@@ -1,6 +1,8 @@
 <?php
 
-namespace Grimoire\Test;
+namespace Grimoire\Test\Deprecated;
+
+use Grimoire\Test\AbstractGrimoireTestCase;
 
 class ConditionTest extends AbstractGrimoireTestCase
 {
@@ -23,7 +25,7 @@ class ConditionTest extends AbstractGrimoireTestCase
         foreach (
             $this->db->table('application', ['author_id', 12])
                 ->or('maintainer_id', 11)
-                ->orderBy('title') as $application
+                ->order('title') as $application
         ) {
             $data[] = $application['title'];
         }

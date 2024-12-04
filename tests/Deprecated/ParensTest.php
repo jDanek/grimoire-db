@@ -1,6 +1,8 @@
 <?php
 
-namespace Grimoire\Test;
+namespace Grimoire\Test\Deprecated;
+
+use Grimoire\Test\AbstractGrimoireTestCase;
 
 class ParensTest extends AbstractGrimoireTestCase
 {
@@ -12,7 +14,7 @@ class ParensTest extends AbstractGrimoireTestCase
             ->or('(author_id', 12)->and('maintainer_id', 12)->where(')');
 
         $data = [];
-        foreach ($applications->orderBy('title') as $application) {
+        foreach ($applications->order('title') as $application) {
             $data[] = $application['title'];
         }
 

@@ -120,18 +120,34 @@ class MultiResult extends Result
         return call_user_func_array([$this, 'parent::select'], $args);
     }
 
+    public function orderBy(...$columns): Result
+    {
+        if (!$this->order) { // Improve index utilization
+            $subject = (isset($columns[0]) && is_array($columns[0]) ? $columns[0][0] : $columns[0]);
+            $this->order[] = "$this->table.$this->column" . (preg_match('~\\bDESC$~i', $subject) ? ' DESC' : '');
+        }
+
+        // flatten the arguments to handle both array and variadic inputs
+        $columns = array_merge(...array_map(function ($col) {
+            return is_array($col) ? $col : [$col];
+        }, $columns));
+
+        // PHP 7.4 or later: Use splat operator for parent call
+        if (version_compare(PHP_VERSION, '7.4.0', '>=')) {
+            return parent::orderBy(...$columns);
+        }
+
+        // PHP 7.3 or earlier: Use call_user_func_array for parent call
+        return call_user_func_array([$this, 'parent::orderBy'], $columns);
+    }
+
+    /**
+     * @deprecated use {@see orderBy()}
+     */
     public function order($columns): Result
     {
-        if (!$this->order) { // improve index utilization
-            $this->order[] = "$this->table.$this->column" . (preg_match('~\\bDESC$~i', $columns) ? ' DESC' : '');
-        }
-        $args = func_get_args();
-        // php 7.4 or later
-        if (version_compare(PHP_VERSION, '7.4.0', '>=')) {
-            return parent::order(...$args);
-        }
-        // php 7.3 or earlier
-        return call_user_func_array([$this, 'parent::order'], $args);
+        $columns = (is_array($columns) ? $columns : func_get_args());
+        return $this->orderBy($columns);
     }
 
     public function aggregation(string $function): ?string

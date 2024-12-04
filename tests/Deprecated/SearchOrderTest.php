@@ -1,16 +1,18 @@
 <?php
 
-namespace Grimoire\Test;
+namespace Grimoire\Test\Deprecated;
+
+use Grimoire\Test\AbstractGrimoireTestCase;
 
 class SearchOrderTest extends AbstractGrimoireTestCase
 {
 
-    public function testSearchorderBy()
+    public function testSearchOrder()
     {
         $data = [];
         foreach (
             $this->db->table('application', ['web LIKE ?', ['http://%']])
-                ->orderBy('title')
+                ->order('title')
                 ->limit(3) as $application
         ) {
             $data[] = $application['title'];

@@ -1,6 +1,8 @@
 <?php
 
-namespace Grimoire\Test;
+namespace Grimoire\Test\Deprecated;
+
+use Grimoire\Test\AbstractGrimoireTestCase;
 
 class MultipleTest extends AbstractGrimoireTestCase
 {
@@ -12,7 +14,7 @@ class MultipleTest extends AbstractGrimoireTestCase
         foreach (
             $application->related('application_tag')
                 ->select('application_id', 'tag_id')
-                ->orderBy("application_id DESC", "tag_id DESC")
+                ->order("application_id DESC", "tag_id DESC")
             as $application_tag
         ) {
             $data[] = $application_tag['application_id'] . ' ' . $application_tag['tag_id'];
@@ -31,7 +33,7 @@ class MultipleTest extends AbstractGrimoireTestCase
         foreach (
             $application->related('application_tag')
                 ->select('application_id', 'tag_id')
-                ->orderBy(["application_id DESC", "tag_id DESC"])
+                ->order(["application_id DESC", "tag_id DESC"])
             as $application_tag
         ) {
             $data[] = $application_tag['application_id'] . ' ' . $application_tag['tag_id'];
@@ -42,4 +44,5 @@ class MultipleTest extends AbstractGrimoireTestCase
             '1 21',
         ], $data);
     }
+
 }

@@ -1,6 +1,8 @@
 <?php
 
-namespace Grimoire\Test;
+namespace Grimoire\Test\Deprecated;
+
+use Grimoire\Test\AbstractGrimoireTestCase;
 
 class InTest extends AbstractGrimoireTestCase
 {
@@ -16,9 +18,9 @@ class InTest extends AbstractGrimoireTestCase
     public function testInMulti()
     {
         $data = [];
-        foreach ($this->db->table('author')->orderBy('id') as $author) {
+        foreach ($this->db->table('author')->order('id') as $author) {
             foreach (
-                $this->db->table('application_tag', ['application_id', $author->related('application')])->orderBy(
+                $this->db->table('application_tag', ['application_id', $author->related('application')])->order(
                     "application_id, tag_id"
                 ) as $application_tag
             ) {

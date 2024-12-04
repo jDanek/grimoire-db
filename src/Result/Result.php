@@ -179,7 +179,6 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
         return $return;
     }
 
-
     public function getTable(): string
     {
         return $this->table;
@@ -633,14 +632,18 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
     /**
      * Add order clause, more calls appends to the end
      *
-     * @param string|array $columns 'column1, column2 DESC' or ['column1', 'column2 DESC'], empty string to reset previous order
-     * @param ... $columns
+     * @param string|array ...$columns 'column1, column2 DESC' or ['column1', 'column2 DESC'], empty string to reset previous order
      */
-    public function order($columns): self
-    {
+    public function orderBy(...$columns): self
+    {;
         $this->rows = [];
-        if ($columns !== '') {
-            $columns = (is_array($columns) ? $columns : func_get_args());
+
+        // Flatten the arguments to handle both variadic and array input
+        $columns = array_merge(...array_map(function ($col) {
+            return is_array($col) ? $col : [$col];
+        }, $columns));
+
+        if (!empty($columns)) {
             foreach ($columns as $column) {
                 if (!empty($this->union)) {
                     $this->unionOrder[] = $column;
@@ -653,7 +656,21 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
         } else {
             $this->order = [];
         }
+
         return $this;
+    }
+
+    /**
+     * Add order clause, more calls appends to the end
+     *
+     * @param string|array $columns 'column1, column2 DESC' or ['column1', 'column2 DESC'], empty string to reset previous order
+     * @param ... $columns
+     * @deprecated use {@see orderBy()}
+     */
+    public function order($columns): self
+    {
+        $columns = (is_array($columns) ? $columns : func_get_args());
+        return $this->orderBy($columns);
     }
 
     /**

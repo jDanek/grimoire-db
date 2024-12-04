@@ -1,6 +1,8 @@
 <?php
 
-namespace Grimoire\Test;
+namespace Grimoire\Test\Deprecated;
+
+use Grimoire\Test\AbstractGrimoireTestCase;
 
 class LimitationTest extends AbstractGrimoireTestCase
 {
@@ -10,14 +12,14 @@ class LimitationTest extends AbstractGrimoireTestCase
         $data = [];
 
         $application = $this->db->row('application', 1);
-        foreach ($application->related('application_tag')->orderBy('tag_id')->limit(1, 1) as $application_tag) {
+        foreach ($application->related('application_tag')->order('tag_id')->limit(1, 1) as $application_tag) {
             $data[] = $application_tag->ref('tag')['name'];
         }
 
         foreach ($this->db->table('application') as $application) {
             foreach (
                 $application->related('application_tag')
-                    ->orderBy('tag_id')
+                    ->order('tag_id')
                     ->limit(1, 1) as $application_tag
             ) {
                 $data[] = $application_tag->ref('tag')['name'];

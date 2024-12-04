@@ -1,6 +1,8 @@
 <?php
 
-namespace Grimoire\Test;
+namespace Grimoire\Test\Deprecated;
+
+use Grimoire\Test\AbstractGrimoireTestCase;
 
 class JoinTest extends AbstractGrimoireTestCase
 {
@@ -8,7 +10,7 @@ class JoinTest extends AbstractGrimoireTestCase
     public function testJoin()
     {
         $data = [];
-        foreach ($this->db->table('application')->orderBy('author.name, title') as $application) {
+        foreach ($this->db->table('application')->order('author.name, title') as $application) {
             $data[] = $application->ref('author')['name'] . ': ' . $application['title'];
         }
 
@@ -37,7 +39,7 @@ class JoinTest extends AbstractGrimoireTestCase
             $this->db->table('author')
                 ->select('author.*, COUNT(DISTINCT application:application_tag:tag_id) AS tags')
                 ->group('author.id')
-                ->orderBy('tags DESC') as $autor
+                ->order('tags DESC') as $autor
         ) {
             $data[] = $autor['name'] . ': ' . $autor['tags'];
         }

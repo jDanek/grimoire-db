@@ -1,6 +1,8 @@
 <?php
 
-namespace Grimoire\Test;
+namespace Grimoire\Test\Deprecated;
+
+use Grimoire\Test\AbstractGrimoireTestCase;
 
 class PairsTest extends AbstractGrimoireTestCase
 {
@@ -13,7 +15,7 @@ class PairsTest extends AbstractGrimoireTestCase
             2 => 'JUSH',
             3 => 'Nette',
         ],
-            $this->db->table('application')->orderBy('title')->fetchPairs('id', 'title')
+            $this->db->table('application')->order('title')->fetchPairs('id', 'title')
         );
 
         $this->assertEquals([
@@ -22,7 +24,7 @@ class PairsTest extends AbstractGrimoireTestCase
             3 => 3,
             4 => 4,
         ],
-            $this->db->table('application')->orderBy('id')->fetchPairs('id', 'id')
+            $this->db->table('application')->order('id')->fetchPairs('id', 'id')
         );
     }
 }

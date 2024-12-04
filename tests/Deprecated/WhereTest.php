@@ -1,6 +1,10 @@
 <?php
 
-namespace Grimoire\Test;
+namespace Grimoire\Test\Deprecated;
+
+use Grimoire\Test\AbstractGrimoireTestCase;
+
+;
 
 class WhereTest extends AbstractGrimoireTestCase
 {
@@ -22,7 +26,7 @@ class WhereTest extends AbstractGrimoireTestCase
         ) {
             $data[] = implode(
                 ', ',
-                array_keys(iterator_to_array($result->orderBy('id')))
+                array_keys(iterator_to_array($result->order('id')))
             ); // aggregation("GROUP_CONCAT(id)") is not available in all drivers
         }
 
