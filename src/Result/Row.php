@@ -148,7 +148,7 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
      */
     public function __get(string $name): ?Row
     {
-        return $this->ref($name, $name);
+        return $this->ref($name);
     }
 
     /**
