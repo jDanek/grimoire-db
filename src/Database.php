@@ -6,7 +6,7 @@ namespace Grimoire;
 
 use Grimoire\Result\Result;
 use Grimoire\Result\Row;
-use Grimoire\Util\StringFormatter;
+use Grimoire\Transaction\Transaction;
 
 /**
  * Database representation
@@ -15,8 +15,8 @@ class Database
 {
     /** @var Config */
     protected $config;
-    /** @var int */
-    private $transactionDepth = 0;
+    /** @var Transaction|null */
+    protected $transaction = null;
     /** @var array */
     protected static $queue = null;
 
@@ -78,33 +78,53 @@ class Database
 
     /* --- TRANSACTIONS --- */
 
+    /**
+     * Lazy initialize transaction and execute the callback.
+     *
+     * @example $database->transaction(function ($db) {
+     *     $db->table('users')->insert(['name' => 'John']);
+     * });
+     */
+    public function transactional(callable $callback, int $attempts = 1)
+    {
+        if ($this->transaction === null) {
+            $this->transaction = new Transaction($this);
+        }
+        return $this->transaction->execute($callback, $attempts);
+    }
+
+    /**
+     * Start a transaction manually, without using a callback.
+     */
     public function beginTransaction(): void
     {
-        if ($this->transactionDepth !== 0) {
-            throw new \LogicException(__METHOD__ . '() call is forbidden inside a transaction() callback');
+        if ($this->transaction === null) {
+            $this->transaction = new Transaction($this);
         }
-
-        $this->getConnection()->begin_transaction();
+        $this->transaction->beginTransaction();
     }
 
+    /**
+     * Commit the transaction manually.
+     */
     public function commit(): void
     {
-        if ($this->transactionDepth !== 0) {
-            throw new \LogicException(__METHOD__ . '() call is forbidden inside a transaction() callback');
+        if ($this->transaction === null) {
+            throw new \LogicException('No transaction is started.');
         }
-
-        $this->getConnection()->commit();
+        $this->transaction->commit();
     }
 
+    /**
+     * Rollback the transaction manually.
+     */
     public function rollBack(): void
     {
-        if ($this->transactionDepth !== 0) {
-            throw new \LogicException(__METHOD__ . '() call is forbidden inside a transaction() callback');
+        if ($this->transaction === null) {
+            throw new \LogicException('No transaction is started.');
         }
-
-        $this->getConnection()->rollback();
+        $this->transaction->rollBack();
     }
-
 
     /* --- FORMATTERS --- */
 
@@ -148,7 +168,7 @@ class Database
         if (self::$queue !== null) {
             self::$queue[] = func_get_args();
         } else { // top level call
-            self::$queue = array(func_get_args());
+            self::$queue = [func_get_args()];
             ob_start([self::class, 'out'], 2); // 2 - minimal value, 1 means 4096 before PHP 5.4
             while (self::$queue) {
                 $original = self::$queue;
