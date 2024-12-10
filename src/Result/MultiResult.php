@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Grimoire\Result;
 
 use Grimoire\Database;
-use Psr\SimpleCache\InvalidArgumentException;
 
 /**
  * Representation of filtered table grouped by some column
@@ -61,7 +60,6 @@ class MultiResult extends Result
 
     /**
      * @return Row|false|int
-     * @throws \ReflectionException
      */
     public function insertUpdate(array $unique, array $insert, array $update = [])
     {
@@ -177,10 +175,6 @@ class MultiResult extends Result
         return parent::count($column);
     }
 
-    /**
-     * @throws InvalidArgumentException
-     * @throws \ReflectionException
-     */
     protected function execute(): void
     {
         if (empty($this->rows)) {

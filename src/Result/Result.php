@@ -90,7 +90,6 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
 
     /**
      * Save data to cache and empty result
-     * @throws InvalidArgumentException
      */
     public function __destruct()
     {
@@ -99,7 +98,11 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
             if (is_array($access)) {
                 $access = array_filter($access);
             }
-            $this->database->getConfig()->getCache()->set("$this->table;" . implode(',', $this->conditions), $access);
+            try {
+                $this->database->getConfig()->getCache()->set("$this->table;" . implode(',', $this->conditions), $access);
+            } catch (InvalidArgumentException $e) {
+                error_log('Cache set error: ' . $e->getMessage());
+            }
         }
         $this->rows = [];
         unset($this->data);
@@ -218,7 +221,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
      * Returns row specified by primary key.
      *
      * @param mixed $key
-     * @throws \Exception
+     * @throws \Throwable
      */
     public function get($key, bool $single = true): ?Row
     {
@@ -229,7 +232,6 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
 
     /**
      * Get SQL query
-     * @throws InvalidArgumentException
      */
     public function __toString(): string
     {
@@ -241,9 +243,16 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
             ) . ",$this->group,$this->having," . implode(',', $this->order)
         );
         if (empty($this->rows) && !is_string($this->accessed)) {
-            $this->accessed = $this->database->getConfig()->getCache()->get(
-                "$this->table;" . implode(',', $this->conditions)
-            );
+            try {
+                $this->accessed = $this->database->getConfig()->getCache()->get(
+                    "$this->table;" . implode(',', $this->conditions),
+                    []
+                );
+            } catch (InvalidArgumentException $e) {
+                error_log('Cache get error: ' . $e->getMessage());
+                $this->accessed = [];
+            }
+
             $this->access = $this->accessed;
         }
         if (!empty($this->select)) {
@@ -376,7 +385,6 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
      * @param array|\Traversable|Result|string $data array($column => $value)|Traversable for single row insert or Result|string for INSERT ... SELECT
      * @param ... $data used for extended insert
      * @return Row|false|int inserted Row or false in case of an error or number of affected rows for INSERT ... SELECT
-     * @throws \ReflectionException if Row object cannot be created
      */
     public function insert($data)
     {
@@ -399,8 +407,9 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
         }
 
         // create new row instance
-        $class = new \ReflectionClass($this->database->getConfig()->getRowClass());
-        return $class->newInstanceArgs([$data, $this, $this->database]);
+        /** @var Row $rowClass */
+        $rowClass = $this->database->getConfig()->getRowClass();
+        return new $rowClass($data, $this, $this->database);
     }
 
     /**
@@ -446,7 +455,6 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
      * @param array $insert [column => value]
      * @param array $update [column => value], empty array means use $insert
      * @return int|false number of affected rows or false in case of an error
-     * @throws \ReflectionException
      */
     public function insertUpdate(array $unique, array $insert, array $update = [])
     {
@@ -498,12 +506,12 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
      *
      * @param string|array $columns for example ['column1', 'column2'], 'column, MD5(column) AS column_md5', empty string to reset previously set columns
      * @return Result
-     * @throws InvalidArgumentException
      */
     public function select(...$columns): self
     {
         $this->__destruct();
 
+        $columns = ($columns === ['*']) ? [] : $columns; // remove '*'
         if (!empty($columns)) {
             foreach ($columns as $column) {
                 if (is_array($column)) {
@@ -530,9 +538,6 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
         return $this->whereOperator('AND', $args);
     }
 
-    /**
-     * @throws InvalidArgumentException
-     */
     protected function whereOperator(string $operator, array $args): self
     {
         $condition = $args[0];
@@ -601,9 +606,6 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
         return $condition;
     }
 
-    /**
-     * @throws InvalidArgumentException
-     */
     public function __call(string $name, array $args): self
     {
         $operator = strtoupper($name);
@@ -621,7 +623,6 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
      * @param mixed $parameters
      * @param ... $parameters
      * @return Result fluent interface
-     * @throws InvalidArgumentException
      */
     public function __invoke(string $where, $parameters = []): self
     {
@@ -635,7 +636,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
      * @param string|array ...$columns 'column1, column2 DESC' or ['column1', 'column2 DESC'], empty string to reset previous order
      */
     public function orderBy(...$columns): self
-    {;
+    {
         $this->rows = [];
 
         // Flatten the arguments to handle both variadic and array input
@@ -692,6 +693,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
     /**
      * Sets offset using page number, more calls rewrite old values.
      * @param array|null $totals if the value $totals is specified, then it is populated with the results of the count. ['total_items' => int, 'total_pages' => int]
+     * @throws \Throwable
      */
     public function page(int $page, int $itemsPerPage, ?array &$totals = null): self
     {
@@ -713,7 +715,6 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
 
     /**
      * Set group clause, more calls rewrite old values
-     * @throws InvalidArgumentException
      */
     public function group(string $columns, string $having = ''): self
     {
@@ -759,8 +760,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
 
     /**
      * Count number of rows
-     * @throws \Exception
-     * @throws InvalidArgumentException
+     * @throws \Throwable
      */
     public function count(string $column = ''): int
     {
@@ -797,8 +797,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
 
     /**
      * Execute the built query
-     * @throws InvalidArgumentException
-     * @throws \ReflectionException if Row object cannot be created
+     * @throws \Throwable
      */
     protected function execute(): void
     {
@@ -820,7 +819,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
             }
             try {
                 $result = $this->query($this->__toString(), $parameters);
-            } catch (\Exception $exception) {
+            } catch (\Throwable $exception) {
                 // handled later
             }
             if ($result === false) {
@@ -843,8 +842,9 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
                     }
 
                     // create new row instance
-                    $class = new \ReflectionClass($this->database->getConfig()->getRowClass());
-                    $this->rows[$key] = $class->newInstanceArgs([$row, $this, $this->database]);
+                    /** @var Row $rowClass */
+                    $rowClass = $this->database->getConfig()->getRowClass();
+                    $this->rows[$key] = new $rowClass($row, $this, $this->database);
                 }
             }
             $this->data = $this->rows;
@@ -856,8 +856,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
      *
      * @param string $column column name to return or an empty string for the whole row
      * @return string|null|Row|false string or null with $column, Row without $column, false if there is no row
-     * @throws \Exception
-     * @throws InvalidArgumentException
+     * @throws \Throwable
      */
     public function fetch(string $column = '')
     {
@@ -875,7 +874,6 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
      * Fetch all rows as associative array
      *
      * @param string $value column name used for an array value or an empty string for the whole row
-     * @throws InvalidArgumentException
      */
     public function fetchPairs(string $key, string $value = ''): array
     {
@@ -954,8 +952,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
     // Iterator implementation (not IteratorAggregate because $this->data can be changed during iteration)
 
     /**
-     * @throws \Exception
-     * @throws InvalidArgumentException
+     * @throws \Throwable
      */
     public function rewind(): void
     {
@@ -996,7 +993,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
     /**
      * Test if row exists
      * @param string|array $key row ID or array for where conditions
-     * @throws \Exception
+     * @throws \Throwable
      */
     public function offsetExists($key): bool
     {
@@ -1008,8 +1005,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
      * Get specified row
      * @param string|array $key row ID or array for where conditions
      * @return Row|null
-     * @throws \Exception
-     * @throws InvalidArgumentException
+     * @throws \Throwable
      */
     #[\ReturnTypeWillChange]
     public function offsetGet($key)
@@ -1049,8 +1045,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
      *
      * @param string $key row ID
      * @param Row $value
-     * @throws \Exception
-     * @throws InvalidArgumentException
+     * @throws \Throwable
      */
     public function offsetSet($key, $value): void
     {
@@ -1062,8 +1057,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
      * Remove row from result set
      *
      * @param string $key row ID
-     * @throws \Exception
-     * @throws InvalidArgumentException
+     * @throws \Throwable
      */
     public function offsetUnset($key): void
     {
@@ -1074,8 +1068,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
     // JsonSerializable implementation
 
     /**
-     * @throws \Exception
-     * @throws InvalidArgumentException
+     * @throws \Throwable
      */
     public function jsonSerialize(): array
     {

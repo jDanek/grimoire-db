@@ -27,13 +27,9 @@ class DiscoveryStructure implements StructureInterface
     protected $stringFormatter;
 
     /**
-     * @param \Mysqli $connection
-     * @param CacheInterface|null $cache
      * @param string $foreign use "%s_id" to access $name . "_id" column in $row->$name
-     * @return DiscoveryStructure
-     * @throws InvalidArgumentException|\Throwable
      */
-    public static function create(\Mysqli $connection, CacheInterface $cache = null, string $foreign = '%s'): self
+    public static function create(\Mysqli $connection, ?CacheInterface $cache = null, string $foreign = '%s'): self
     {
         return new self($connection, new StringFormatter($connection), $cache, $foreign);
     }
@@ -41,29 +37,31 @@ class DiscoveryStructure implements StructureInterface
     /**
      * Create autodiscovery structure
      *
-     * @param \Mysqli $connection
-     * @param StringFormatter $stringFormatter
-     * @param CacheInterface|null $cache
      * @param string $foreign use "%s_id" to access $name . "_id" column in $row->$name
-     * @throws InvalidArgumentException|\Throwable
      */
-    public function __construct(\Mysqli $connection, StringFormatter $stringFormatter, CacheInterface $cache = null, string $foreign = '%s')
+    public function __construct(\Mysqli $connection, StringFormatter $stringFormatter, ?CacheInterface $cache = null, string $foreign = '%s')
     {
         $this->connection = $connection;
         $this->cache = $cache ?? new BlackHoleDriver();
         $this->foreign = $foreign;
-        $this->structure = $this->cache->get('structure');
-
+        try {
+            $this->structure = $this->cache->get('structure', []);
+        } catch (InvalidArgumentException $e) {
+            error_log('Cache get error: ' . $e->getMessage());
+        }
         $this->stringFormatter = $stringFormatter;
     }
 
     /**
      * Save data to cache
-     * @throws InvalidArgumentException|\Throwable
      */
     public function __destruct()
     {
-        $result = $this->cache->set('structure', $this->structure);
+        try {
+            $result = $this->cache->set('structure', $this->structure);
+        } catch (InvalidArgumentException $e) {
+            error_log('Cache set error: ' . $e->getMessage());
+        }
     }
 
     public function getPrimary(string $table): string

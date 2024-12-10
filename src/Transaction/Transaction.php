@@ -57,7 +57,6 @@ class Transaction
      *
      * @param int $attempts The number of retry attempts
      * @return mixed
-     * @throws \Throwable
      */
     public function execute(callable $callback, int $attempts = 1)
     {

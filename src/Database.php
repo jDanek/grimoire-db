@@ -66,12 +66,11 @@ class Database
 
     /**
      * Get table row
-     *
-     * @throws \Exception
+     * @throws \Throwable
      */
     public function row(string $table, int $id): ?Row
     {
-        $result = new Result($this->config->getStructure()->getReferencingTable($table, ''), $this, true);;
+        $result = new Result($this->config->getStructure()->getReferencingTable($table, ''), $this, true);
         return $result->get($id);
     }
 
@@ -81,7 +80,7 @@ class Database
     /**
      * Lazy initialize transaction and execute the callback.
      *
-     * @example $database->transaction(function ($db) {
+     * @example $database->transactional(function ($db) {
      *     $db->table('users')->insert(['name' => 'John']);
      * });
      */

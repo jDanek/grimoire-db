@@ -45,8 +45,6 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
 
     /**
      * Get referenced row
-     *
-     * @throws \ReflectionException
      */
     public function ref(string $name, ?string $viaColumn = null): ?Row
     {
@@ -67,9 +65,10 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
             $referenced = new Result($table, $this->database);
             $referenced->where("$table." . $dbConfig->getStructure()->getPrimary($table), array_keys($keys));
         }
-        // create new row instance
-        $class = new \ReflectionClass($dbConfig->getRowClass());
-        return $class->newInstanceArgs([[], $referenced, $this->database, $this[$column]]);
+
+        /** @var Row $rowClass */
+        $rowClass = $dbConfig->getRowClass();
+        return new $rowClass([], $referenced, $this->database, $this[$column]);
     }
 
     /**
@@ -143,8 +142,6 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
 
     /**
      * Get referenced row
-     *
-     * @throws \ReflectionException
      */
     public function __get(string $name): ?Row
     {
@@ -153,7 +150,6 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
 
     /**
      * Test if referenced row exists
-     * @throws \ReflectionException
      */
     public function __isset(string $name): bool
     {
