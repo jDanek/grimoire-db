@@ -382,18 +382,19 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
     /**
      * Insert row in a table
      *
-     * @param array|\Traversable|Result|string $data array($column => $value)|Traversable for single row insert or Result|string for INSERT ... SELECT
-     * @param ... $data used for extended insert
+     * @param array|\Traversable|Result|string ...$data [$column => $value] | Traversable for single row insert or Result | string for INSERT ... SELECT
      * @return Row|false|int inserted Row or false in case of an error or number of affected rows for INSERT ... SELECT
      */
-    public function insert($data)
+    public function insert(...$rows)
     {
-        $rows = func_get_args();
         $return = $this->insertMulti($rows);
 
         if (!$return) {
             return false;
         }
+
+        // ensure that $rows[0] contains the data to create a new instance of the row
+        $data = $rows[0] ?? [];
 
         if (!is_array($data)) {
             return $return;
