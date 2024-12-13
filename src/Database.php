@@ -19,6 +19,8 @@ class Database
     protected $transaction = null;
     /** @var array */
     protected static $queue = null;
+    /** @var array<string, callable> */
+    private $namedQueries = [];
 
     public function __construct(Config $config)
     {
@@ -125,6 +127,52 @@ class Database
         $this->transaction->rollBack();
     }
 
+    /* --- NAMED QUERIES --- */
+
+    public function registerNamedQuery(string $name, callable $queryCallback, array $requiredParams = []): void
+    {
+        if (isset($this->namedQueries[$name])) {
+            throw new \LogicException("Named query '$name' already exists.");
+        }
+        $this->namedQueries[$name] = ['callback' => $queryCallback, 'required_params' => $requiredParams];
+    }
+
+    public function runNamedQuery(string $name, array $args = [])
+    {
+        if (!isset($this->namedQueries[$name])) {
+            throw new \OutOfBoundsException("Named query '" . $name . "' not found.");
+        }
+
+        $named = $this->namedQueries[$name];
+        $requiredParams = $named['required_params'];
+        $query = $named['callback'];
+
+        // validation of required parameters
+        foreach ($requiredParams as $param) {
+            if (!array_key_exists($param, $args)) {
+                throw new \InvalidArgumentException("Missing required parameter: '" . $param . "'");
+            }
+        }
+
+        // map arguments
+        $mappedArgs = [];
+        foreach ($args as $value) {
+            $mappedArgs[] = $value;
+        }
+
+        return call_user_func($query, $this, ...$mappedArgs);
+    }
+
+    public function removeNamedQuery(string $name)
+    {
+        unset($this->namedQueries[$name]);
+    }
+
+    public function clearNamedQueries(): void
+    {
+        $this->namedQueries = [];
+    }
+
     /* --- FORMATTERS --- */
 
     /**
@@ -144,14 +192,12 @@ class Database
         return $this->config->getStringFormatter()->formatValue($val);
     }
 
-
     /* --- HELPERS --- */
 
     public static function literal(string $value, ...$parameters): Literal
     {
         return new Literal($value, $parameters);
     }
-
 
     /* --- DEFERRED CALL --- */
 
