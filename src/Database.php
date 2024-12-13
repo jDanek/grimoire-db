@@ -6,7 +6,10 @@ namespace Grimoire;
 
 use Grimoire\Result\Result;
 use Grimoire\Result\Row;
+use Grimoire\Structure\StructureInterface;
 use Grimoire\Transaction\Transaction;
+use Grimoire\Util\StringFormatter;
+use Psr\SimpleCache\CacheInterface;
 
 /**
  * Database representation
@@ -25,16 +28,6 @@ class Database
     public function __construct(Config $config)
     {
         $this->config = $config;
-    }
-
-    public function getConfig(): Config
-    {
-        return $this->config;
-    }
-
-    public function getConnection(): \Mysqli
-    {
-        return $this->config->getConnection();
     }
 
     /**
@@ -173,30 +166,46 @@ class Database
         $this->namedQueries = [];
     }
 
-    /* --- FORMATTERS --- */
+    /* --- HELPERS --- */
+
+    public static function literal(string $value, ...$parameters): Literal
+    {
+        return new Literal($value, $parameters);
+    }
+
+    public function getConfig(): Config
+    {
+        return $this->config;
+    }
+
+    public function getConnection(): \Mysqli
+    {
+        return $this->config->getConnection();
+    }
+
+    public function getStructure(): StructureInterface
+    {
+        return $this->config->getStructure();
+    }
+
+    public function getCache(): CacheInterface
+    {
+        return $this->config->getCache();
+    }
+
+    public function getStringFormatter(): StringFormatter
+    {
+        return $this->config->getStringFormatter();
+    }
+
+    /* --- SHORTHANDS --- */
 
     /**
      * @param mixed $val
      */
     public function quote($val): string
     {
-        return $this->config->getStringFormatter()->quote($val);
-    }
-
-    /**
-     * @param mixed $val
-     * @return float|int|string
-     */
-    public function formatValue($val)
-    {
-        return $this->config->getStringFormatter()->formatValue($val);
-    }
-
-    /* --- HELPERS --- */
-
-    public static function literal(string $value, ...$parameters): Literal
-    {
-        return new Literal($value, $parameters);
+        return $this->getStringFormatter()->quote($val);
     }
 
     /* --- DEFERRED CALL --- */

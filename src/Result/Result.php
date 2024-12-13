@@ -85,7 +85,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
         $this->table = $table;
         $this->database = $database;
         $this->single = $single;
-        $this->primary = $database->getConfig()->getStructure()->getPrimary($table);
+        $this->primary = $database->getStructure()->getPrimary($table);
     }
 
     /**
@@ -99,7 +99,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
                 $access = array_filter($access);
             }
             try {
-                $this->database->getConfig()->getCache()->set("$this->table;" . implode(',', $this->conditions), $access);
+                $this->database->getCache()->set("$this->table;" . implode(',', $this->conditions), $access);
             } catch (InvalidArgumentException $e) {
                 error_log('Cache set error: ' . $e->getMessage());
             }
@@ -163,7 +163,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
                 foreach ($matches as $match) {
                     [, $name, $delimiter] = $match;
 
-                    $structure = $this->database->getConfig()->getStructure();
+                    $structure = $this->database->getStructure();
 
                     $table = $structure->getReferencedTable($name, $parent);
                     $column = ($delimiter === ':'
@@ -244,7 +244,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
         );
         if (empty($this->rows) && !is_string($this->accessed)) {
             try {
-                $this->accessed = $this->database->getConfig()->getCache()->get(
+                $this->accessed = $this->database->getCache()->get(
                     "$this->table;" . implode(',', $this->conditions),
                     []
                 );
@@ -287,7 +287,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
             if (!is_callable($dbConfig->getDebug())) {
                 $debug = "$query;";
                 if (!empty($parameters)) {
-                    $debug .= ' -- ' . implode(', ', array_map([$this->database, 'quote'], $parameters));
+                    $debug .= ' -- ' . implode(', ', array_map([$this->database->getStringFormatter(), 'quote'], $parameters));
                 }
                 $pattern = '(^' . preg_quote(dirname(__FILE__)) . '(\\.php$|[/\\\\]))'; // can be static
                 foreach (debug_backtrace() as $backtrace) {
@@ -307,7 +307,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
         if ($return !== false) {
             $paramsCount = count($parameters);
             if ($paramsCount > 0) {
-                $bindParams = array_map([$this->database, 'formatValue'], $parameters);
+                $bindParams = array_map([$this->database->getStringFormatter(), 'formatValue'], $parameters);
                 $types = str_repeat('s', $paramsCount);
                 $bindParams = array_values($bindParams); // mysqli does not support named parameters
                 $return->bind_param($types, ...$bindParams);
@@ -562,7 +562,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
         } elseif ($parameters instanceof Result) { // where('column', $db->$table())
             $clone = clone $parameters;
             if (empty($clone->select)) {
-                $clone->select($this->database->getConfig()->getStructure()->getPrimary($clone->table));
+                $clone->select($this->database->getStructure()->getPrimary($clone->table));
             }
 
             $in = [];

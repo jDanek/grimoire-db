@@ -79,13 +79,11 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
      */
     public function related(string $relatedTableName, array $where = []): MultiResult
     {
-        $dbConfig = $this->database->getConfig();
-
-        $table = $dbConfig->getStructure()->getReferencingTable(
+        $table = $this->database->getStructure()->getReferencingTable(
             $relatedTableName,
             $this->result->getTable()
         );
-        $column = $dbConfig->getStructure()->getReferencingColumn($table, $this->result->getTable());
+        $column = $this->database->getStructure()->getReferencingColumn($table, $this->result->getTable());
         $return = new MultiResult(
             $table,
             $this->database,
@@ -162,7 +160,7 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
      */
     public function __set(string $name, Row $value = null): void
     {
-        $column = $this->database->getConfig()->getStructure()->getReferencedColumn($name, $this->result->getTable());
+        $column = $this->database->getStructure()->getReferencedColumn($name, $this->result->getTable());
         $this[$column] = $value;
     }
 
@@ -171,7 +169,7 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
      */
     public function __unset(string $name): void
     {
-        $column = $this->database->getConfig()->getStructure()->getReferencedColumn($name, $this->result->getTable());
+        $column = $this->database->getStructure()->getReferencedColumn($name, $this->result->getTable());
         unset($this[$column]);
     }
 
@@ -189,7 +187,7 @@ class Row implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializ
         }
 
         if (
-            $this->database->getConfig()->getCache()
+            $this->database->getCache()
             && !isset($this->modified[$key])
             && $this->result->access($key, $delete)
         ) {
