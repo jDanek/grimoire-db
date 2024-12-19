@@ -39,14 +39,14 @@ class Database
      * - ['column_name', instance of Result class]
      * - ['column_name', [param1, param2, ...]]
      * - ['column_name' => 'param1', ...]
-     * - ['column_name > ?' => 'param1', 'another' = 45, ...]
+     * - ['column_name > ?' => 'param1', 'another' => 45, ...]
      * - ['column_name' => ['param1', ...]]
      *
      * @param array $where (['condition', ['value', ...]]) passed to Result::where()
      */
     public function table(string $table, array $where = []): Result
     {
-        $return = new Result($this->config->getStructure()->getReferencingTable($table, ''), $this);
+        $return = new Result($this->getStructure()->getReferencingTable($table, ''), $this);
         if (!empty($where)) {
             // simple autodetect assoc array - if $where is an associative array,
             // it is necessary to wrap it to avoid creating variables from the array keys
@@ -65,7 +65,7 @@ class Database
      */
     public function row(string $table, int $id): ?Row
     {
-        $result = new Result($this->config->getStructure()->getReferencingTable($table, ''), $this, true);
+        $result = new Result($this->getStructure()->getReferencingTable($table, ''), $this, true);
         return $result->get($id);
     }
 
