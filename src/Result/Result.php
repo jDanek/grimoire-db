@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Grimoire\Result;
 
+use Doctrine\Instantiator\Exception\UnexpectedValueException;
 use Grimoire\Database;
 use Grimoire\Literal;
 use Grimoire\Util\ThenForeachHelper;
@@ -553,12 +554,18 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
         $this->conditions[] = "$operator $condition";
         $condition = $this->removeExtraDots((string)$condition);
         if (count($args) != 2 || strpbrk($condition, '?')) { // where('column < ? OR column > ?', [1, 2])
+            // check for unsupported negation
+            if (strpos($condition, '!') !== false && strpos($condition, '!=') === false) {
+                throw new \UnexpectedValueException('Negation in the form \'' . $condition . '\' is not supported.');
+            }
+
             if (count($args) != 2 || !is_array($parameters)) { // where('column < ? OR column > ?', 1, 2)
                 $parameters = array_slice($args, 1);
             }
             $this->parameters = array_merge($this->parameters, $parameters);
         } elseif ($parameters === null) { // where('column', null)
-            $condition .= ' IS NULL';
+            [$condition, $negated] = $this->negateHandler($condition);
+            $condition .= ' IS' . ($negated ? ' NOT' : '') . ' NULL';
         } elseif ($parameters instanceof Result) { // where('column', $db->$table())
             $clone = clone $parameters;
             if (empty($clone->select)) {
@@ -574,15 +581,15 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
                 $in[] = $this->database->quote((count($row) === 1 ? $row[0] : $row));
             }
             if (!empty($in)) {
-                $condition .= ' IN (' . implode(', ', $in) . ')';
+                [$condition, $negated] = $this->negateHandler($condition);
+                $condition .= ($negated ? ' NOT' : '') . ' IN (' . implode(', ', $in) . ')';
             } else {
                 $condition = "($condition) IS NOT NULL AND $condition IS NULL"; // $condition = 'NOT id'
             }
         } elseif (!is_array($parameters)) { // where('column', 'x')
-            $negate = $condition[0] === '!';
-            $condition = ltrim($condition, '!');
-            $condition .= ($negate ? ' != ' : ' = ') . $this->database->quote($parameters);
-        } else { // where('column', array(1, 2))
+            [$condition, $negated] = $this->negateHandler($condition);
+            $condition .= ($negated ? ' != ' : ' = ') . $this->database->quote($parameters);
+        } else { // where('column', [1, 2])
             $condition = $this->whereIn($condition, $parameters);
         }
         $this->where[] = preg_match('~^\)+$~', $condition)
@@ -597,14 +604,33 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
         if (empty($parameters)) {
             $condition = "($condition) IS NOT NULL AND $condition IS NULL";
         } else {
+            [$condition, $negated] = $this->negateHandler($condition);
             $column = $condition;
-            $condition .= ' IN ' . $this->database->quote($parameters);
+            $condition .= ($negated ? ' NOT' : '') . ' IN ' . $this->database->quote($parameters);
             $nulls = array_filter($parameters, 'is_null');
             if (!empty($nulls)) {
-                $condition = "$condition OR $column IS NULL";
+                $not = ($negated ? ' NOT' : '');
+                $condition = "$condition OR $column IS$not NULL";
             }
         }
         return $condition;
+    }
+
+    /**
+     * @param string $column
+     * @return array{
+     *       column: string,
+     *       negated: bool
+     * }
+     */
+    protected function negateHandler(string $column): array
+    {
+        $negated = $column[0] === '!';
+        $column = ltrim($column, '!');
+        return [
+            $column,
+            $negated,
+        ];
     }
 
     public function __call(string $name, array $args): self

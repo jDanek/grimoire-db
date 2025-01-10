@@ -12,12 +12,18 @@ class WhereTest extends AbstractGrimoireTestCase
             [
                 $this->db->table('application', ['id', [4]]),
                 $this->db->table('application', ['id < ?', [4]]),
-                $this->db->table('application', ['id < ?', [4]]),
                 $this->db->table('application', ['id', [1, 2]]),
                 $this->db->table('application', ['id', [null]]),
                 $this->db->table('application', ['id', $this->db->table('application')]),
                 $this->db->table('application', ['id < ?', [4]])->where('maintainer_id IS NOT NULL'),
                 $this->db->table('application', ['id < ?' => 4, 'author_id' => 12]),
+
+                // negative conditions
+                $this->db->table('application', ['!id', [4]]),
+                $this->db->table('application', ['!id', [1, 2]]),
+                $this->db->table('application', ['!id', [null]]),
+                $this->db->table('application', ['!id', $this->db->table('application')]),
+                $this->db->table('application', ['id < ?' => 4, '!author_id' => 12]),
             ] as $result
         ) {
             $data[] = implode(
@@ -29,12 +35,19 @@ class WhereTest extends AbstractGrimoireTestCase
         $this->assertEquals([
             '4',
             '1, 2, 3',
-            '1, 2, 3',
             '1, 2',
             '',
             '1, 2, 3, 4',
             '1, 3',
             '3',
+            // negative conditions
+            '1, 2, 3',
+            '3, 4',
+            '1, 2, 3, 4',
+            '',
+            '1, 2',
         ], $data);
     }
 }
+
+
