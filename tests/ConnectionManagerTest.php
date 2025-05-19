@@ -43,14 +43,14 @@ class ConnectionManagerTest extends TestCase
         $this->cm->removeConnection('default');
 
         $this->expectException(\RuntimeException::class);
-        $connection = $this->cm->getConnection();
+        $connection = $this->cm->connection();
     }
 
     public function testSuccessGetConnection(): void
     {
 
         $this->cm->addConnection('default', $this->config);
-        $connection = $this->cm->getConnection();
+        $connection = $this->cm->connection();
 
         // check if config was added
         $ref = new \ReflectionProperty($this->cm, 'instances');
@@ -66,7 +66,7 @@ class ConnectionManagerTest extends TestCase
         $this->cm->addConnection('default', $this->config);
 
         $this->expectException(\RuntimeException::class);
-        $connection = $this->cm->getConnection('foobar');
+        $connection = $this->cm->connection('foobar');
     }
 
 }

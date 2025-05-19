@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Grimoire;
 
-class ConnectionManager
+class ConnectionManager implements ConnectionResolverInterface
 {
-    const DEFAULT_CONNECTION = 'default';
+    public const DEFAULT_CONNECTION = 'default';
 
     /** @var ConnectionManager */
     private static $instance = null;
@@ -29,39 +31,11 @@ class ConnectionManager
     }
 
     /**
-     * Set default connection with key 'default'
-     */
-    public function setDefaultConnection(Config $config, bool $overwrite = false): void
-    {
-        $this->addConnection(self::DEFAULT_CONNECTION, $config, $overwrite);
-    }
-
-    /**
-     * Returns default connection if exists
-     */
-    public function getDefaultConnection(): Database
-    {
-        return $this->getConnection(self::DEFAULT_CONNECTION);
-    }
-
-    public function addConnection(string $name, Config $config, bool $overwrite = false): void
-    {
-        if (!$overwrite && isset($this->configs[$name])) {
-            throw new \RuntimeException("Connection '{$name}' already exists.");
-        }
-
-        $this->configs[$name] = $config;
-        if ($this->defaultConnectionName === null) {
-            $this->defaultConnectionName = $name;
-        }
-    }
-
-    /**
      * @param string|null $name if null, returns default connection
      */
-    public function getConnection(string $name = null): Database
+    public function connection(?string $name = null): Database
     {
-        $name = $name ?? $this->defaultConnectionName;
+        $name = $name ?: $this->getDefaultConnection();
 
         if (!isset($this->configs[$name])) {
             throw new \RuntimeException("Configuration for connection '{$name}' is missing.");
@@ -74,6 +48,36 @@ class ConnectionManager
         }
 
         return $this->instances[$name];
+    }
+
+    /**
+     * Set default connection with key 'default'
+     */
+    public function setDefaultConnection(Config $config): void
+    {
+        $name = self::DEFAULT_CONNECTION;
+        $this->defaultConnectionName = $name;
+        $this->addConnection($name, $config);
+    }
+
+    /**
+     * Returns default connection if exists
+     */
+    public function getDefaultConnection(): string
+    {
+        return self::DEFAULT_CONNECTION;
+    }
+
+    public function addConnection(string $name, Config $config, bool $overwrite = false): void
+    {
+        if (!$overwrite && isset($this->configs[$name])) {
+            throw new \RuntimeException("Connection '{$name}' already exists.");
+        }
+
+        $this->configs[$name] = $config;
+        if ($this->defaultConnectionName === null) {
+            $this->defaultConnectionName = $name;
+        }
     }
 
     public function removeConnection(string $name): void
