@@ -1,49 +1,107 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Grimoire\Model;
 
-use Grimoire\ConnectionManager;
+use Grimoire\ConnectionResolverInterface;
 use Grimoire\Database;
 use Grimoire\Result\Result;
 use Grimoire\Result\Row;
+use Grimoire\Util\StaticProxyTrait;
 
 abstract class NativeModel
 {
-    /** @var Database */
-    private $database;
+    use StaticProxyTrait;
+
+    /** @var ConnectionResolverInterface */
+    private static $resolver;
+    /** @var string */
+    protected $connectionName = null;
     /** @var string */
     protected $table;
     /** @var string */
     protected $primaryColumn;
 
-    public function __construct(Database $database, ?string $table = null, string $primaryColumn = null)
-    {
-        $this->database = $database;
-        $this->table = $table ?? $this->table;
-        $this->primaryColumn = $primaryColumn ?? $this->database->getStructure()->getPrimary($this->table);
+    public function __construct(
+        ?string $table = null,
+        ?string $primaryColumn = null
+    ) {
+        if(static::$resolver === null) {
+            throw new \RuntimeException('Database connection resolver must be set via NativeModel::setConnectionResolver() before using the model.');
+        }
+
+        $this->table = $table ?? $this->getTableName();
+        $this->primaryColumn = $primaryColumn ?? $this->getConnection()->getStructure()->getPrimary($this->getTableName());
     }
 
     /**
-     * Return static instance of model, use database instance from ConnectionManager
-     *
-     * @return static (return type 'static' is supported in PHP > 8.0, 'self' does not override methods from the child)
+     * Resolve a connection instance.
      */
-    public static function statical()
+    public static function resolveConnection(?string $connection = null): Database
     {
-        return new static(ConnectionManager::getInstance()->getConnection());
+        return static::$resolver->connection($connection);
+    }
+
+    /**
+     * Get the connection resolver instance.
+     */
+    public static function getConnectionResolver(): ?ConnectionResolverInterface
+    {
+        return static::$resolver;
+    }
+
+    /**
+     * Set the connection resolver instance.
+     */
+    public static function setConnectionResolver(ConnectionResolverInterface $resolver): void
+    {
+        static::$resolver = $resolver;
+    }
+
+    /**
+     * Unset the connection resolver for models.
+     */
+    public static function unsetConnectionResolver(): void
+    {
+        static::$resolver = null;
+    }
+
+    /**
+     * Get the database connection for the model.
+     */
+    public function getConnection(): Database
+    {
+        return static::resolveConnection($this->getConnectionName());
+    }
+
+    /**
+     * Get the current connection name for the model.
+     */
+    public function getConnectionName(): ?string
+    {
+        return $this->connectionName;
+    }
+
+    /**
+     * Set the connection associated with the model.
+     * @return static
+     */
+    public function setConnectionName(?string $name)
+    {
+        $this->connectionName = $name;
+        return $this;
     }
 
     /**
      * Return table instance
-     *
-     * @return Result
      */
     protected function table(): Result
     {
         if ($this->table === null) {
             throw new \InvalidArgumentException('Table name is not set');
         }
-        return $this->database->table($this->table);
+        return $this->getConnection()->table($this->getTableName());
     }
 
     public function getTableName(): string
@@ -92,12 +150,12 @@ abstract class NativeModel
 
     /**
      * @param int|string $id get single row by id
-     * @throws \LogicException|\Throwable
+     * @throws \InvalidArgumentException|\Throwable
      */
     public function find($id, ...$columns): ?Row
     {
         if (is_array($id)) {
-            throw new \LogicException('The value array is not supported, use the findMany() method for the array');
+            throw new \InvalidArgumentException('The value array is not supported, use the findMany($ids) method for the array.');
         }
 
         $result = $this->findMany([$id], ...$columns);
@@ -121,12 +179,13 @@ abstract class NativeModel
             return $row;
         }
 
-        throw new RowNotFoundException($this->table, $id);
+        throw new RowNotFoundException($this->getTableName(), $id);
     }
 
     /**
      * @param int|string $id
      * @param array|\Closure $columns
+     * @param \Closure|null $callback first argument is Database instance
      * @return Row|mixed|null
      * @throws \Throwable
      */
@@ -141,7 +200,7 @@ abstract class NativeModel
             return $row;
         }
 
-        return $callback($this->database);
+        return $callback($this->getConnection());
     }
 
 
@@ -172,12 +231,12 @@ abstract class NativeModel
             return $row;
         }
 
-        throw new RowNotFoundException($this->table);
+        throw new RowNotFoundException($this->getTableName());
     }
 
     /**
      * @param array|\Closure $columns
-     * @param \Closure|null $callback
+     * @param \Closure|null $callback first argument is Database instance
      * @return Row|mixed|null
      * @throws \Throwable
      */
@@ -192,7 +251,7 @@ abstract class NativeModel
             return $row;
         }
 
-        return $callback($this->database);
+        return $callback($this->getConnection());
     }
 
 
@@ -243,7 +302,27 @@ abstract class NativeModel
             return $row;
         }
 
-        throw new RowNotFoundException($this->table);
+        throw new RowNotFoundException($this->getTableName());
+    }
+
+    /**
+     * @param array|\Closure $columns
+     * @param \Closure|null $callback first argument is Database instance
+     * @return Row|mixed|null
+     * @throws \Throwable
+     */
+    public function lastOr($columns = [], ?\Closure $callback = null)
+    {
+        if ($columns instanceof \Closure) {
+            $callback = $columns;
+            $columns = [];
+        }
+
+        if (!is_null($row = $this->last($columns ?? []))) {
+            return $row;
+        }
+
+        return $callback($this->getConnection());
     }
 
 
