@@ -27,7 +27,7 @@ abstract class NativeModel
         ?string $table = null,
         ?string $primaryColumn = null
     ) {
-        if(static::$resolver === null) {
+        if (static::$resolver === null) {
             throw new \RuntimeException('Database connection resolver must be set via NativeModel::setConnectionResolver() before using the model.');
         }
 
@@ -96,7 +96,7 @@ abstract class NativeModel
     /**
      * Return table instance
      */
-    protected function table(): Result
+    public function table(): Result
     {
         if ($this->table === null) {
             throw new \InvalidArgumentException('Table name is not set');
@@ -325,7 +325,6 @@ abstract class NativeModel
         return $callback($this->getConnection());
     }
 
-
     /**
      * @throws \Throwable
      */
@@ -347,4 +346,32 @@ abstract class NativeModel
 
         return $this->table()->insert($insertData);
     }
+
+    /**
+     * @return false|Row|int
+     * @see Result::insert
+     */
+    public function insert(...$rows)
+    {
+        return $this->table()->insert(...$rows);
+    }
+
+    /**
+     * @return false|int
+     * @throws \Throwable
+     */
+    public function update(array $conditions, array $data)
+    {
+        return $this->where($conditions)->update($data);
+    }
+
+    /**
+     * @param array $conditions
+     * @return false|int
+     */
+    public function delete(array $conditions)
+    {
+        return $this->where($conditions)->delete();
+    }
+
 }
