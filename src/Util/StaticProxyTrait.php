@@ -13,7 +13,7 @@ trait StaticProxyTrait
      * Returns or creates a singleton instance of the model for a static call
      * @return static
      */
-    public static function proxy()
+    public static function proxy(): self
     {
         $class = static::class;
 
@@ -28,7 +28,7 @@ trait StaticProxyTrait
      * Creates a new, independent instance of the model (for cases when we don't want to use a singleton)
      * @return static
      */
-    public static function new()
+    public static function new(): self
     {
         return new static();
     }
