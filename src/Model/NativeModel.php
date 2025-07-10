@@ -69,12 +69,6 @@ abstract class NativeModel
             return $queryBuilder->$method(...$parameters);
         }
 
-        // if method is scope method on model
-        if (method_exists($instance, $method) && in_array($method, $instance->getScopeMethods())) {
-            // call method on model and pass QueryBuilder
-            return $instance->$method($queryBuilder, ...$parameters);
-        }
-
         // try to find scope{Method} method (Laravel style)
         $scopeMethod = 'scope' . ucfirst($method);
         if (method_exists($instance, $scopeMethod)) {
@@ -97,15 +91,7 @@ abstract class NativeModel
             return $this->queryBuilder->$method(...$parameters);
         }
 
-        // try to find scope{Method} method (Laravel style)
-        $scopeMethodName = 'scope' . ucfirst($method);
-        if (method_exists(static::class, $scopeMethodName)) {
-            return $this->$scopeMethodName($this->queryBuilder, ...$parameters);
-        }
-
-        throw new \BadMethodCallException(sprintf(
-            'Method %s::%s does not exist.', static::class, $method
-        ));
+        throw new \BadMethodCallException("Method '{$method}' does not exist on query builder.");
     }
 
     /**
@@ -203,15 +189,17 @@ abstract class NativeModel
      */
     public function getScopeMethods(): array
     {
-        static $scopes = null;
-        if ($scopes === null) {
+        static $scopesPerClass = [];
+        $class = get_class($this);
+        if (!isset($scopesPerClass[$class])) {
             $scopes = [];
             foreach (get_class_methods($this) as $method) {
                 if (strlen($method) >= 5 && substr($method, 0, 5) === 'scope') {
                     $scopes[] = lcfirst(substr($method, 5));
                 }
             }
+            $scopesPerClass[$class] = $scopes;
         }
-        return $scopes;
+        return $scopesPerClass[$class];
     }
 }

@@ -29,25 +29,22 @@ class ModelQueryBuilder
      */
     public function __call($method, $parameters)
     {
-        // if method is scope method on model, call it
-        if (method_exists($this->model, $method) && in_array($method, $this->model->getScopeMethods() ?? [])) {
-            return $this->model->$method($this, ...$parameters);
-        }
-
         // try to find scope{Method} method (Laravel style)
         $scopeMethod = 'scope' . ucfirst($method);
         if (method_exists($this->model, $scopeMethod)) {
             return $this->model->$scopeMethod($this, ...$parameters);
         }
 
-        $result = $this->query->$method(...$parameters);
-
-        // if Result returns itself, return this builder for fluent interface
-        if ($result === $this->query) {
-            return $this;
+        if (method_exists($this->query, $method)) {
+            $result = $this->query->$method(...$parameters);
+            // fluent interface
+            if ($result === $this->query) {
+                return $this;
+            }
+            return $result;
         }
 
-        return $result;
+        throw new \BadMethodCallException("Method '{$method}' does not exist on builder or as scope.");
     }
 
     /**
@@ -269,6 +266,16 @@ class ModelQueryBuilder
         }
 
         return $callback($this->model->getConnection());
+    }
+
+    /**
+     * @param string|array|null ...$columns
+     * @return bool
+     * @throws \Throwable
+     */
+    public function exists(...$columns): bool
+    {
+        return $this->first(...$columns) !== null;
     }
 
     /**
