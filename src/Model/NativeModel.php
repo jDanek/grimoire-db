@@ -83,6 +83,28 @@ abstract class NativeModel
     }
 
     /**
+     * Handle dynamic method calls into the model from query builder.
+     */
+    public function __call($method, $parameters)
+    {
+        $queryBuilder = $this->newQuery();
+
+        if (method_exists($queryBuilder, $method)) {
+            return $queryBuilder->$method(...$parameters);
+        }
+
+        // try to find scope{Method} method (Laravel style)
+        $scopeMethodName = 'scope' . ucfirst($method);
+        if (method_exists(static::class, $scopeMethodName)) {
+            return $this->$scopeMethodName($queryBuilder, ...$parameters);
+        }
+
+        throw new \BadMethodCallException(sprintf(
+            'Method %s::%s does not exist.', static::class, $method
+        ));
+    }
+
+    /**
      * Start a new query on the model's table.
      */
     public static function query(): ModelQueryBuilder
