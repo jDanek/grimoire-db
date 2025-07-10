@@ -1,6 +1,6 @@
 <?php
 
-namespace Grimoire\Model;
+namespace Grimoire\Exception;
 
 class RowNotFoundException extends \RuntimeException
 {

@@ -2,7 +2,7 @@
 
 namespace Grimoire\Test;
 
-use Grimoire\Transaction\TransactionException;
+use Grimoire\Exception\TransactionException;
 
 class TransactionTest extends AbstractGrimoireTestCase
 {

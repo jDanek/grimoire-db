@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Grimoire\Transaction;
 
 use Grimoire\Database;
+use Grimoire\Exception\TransactionException;
 
 class Transaction
 {

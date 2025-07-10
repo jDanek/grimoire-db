@@ -1,6 +1,6 @@
 <?php
 
-namespace Grimoire\Transaction;
+namespace Grimoire\Exception;
 
 class TransactionException extends \RuntimeException
 {

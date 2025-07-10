@@ -4,8 +4,8 @@ namespace Grimoire\Test;
 
 use Grimoire\Config;
 use Grimoire\ConnectionManager;
+use Grimoire\Exception\RowNotFoundException;
 use Grimoire\Model\NativeModel;
-use Grimoire\Model\RowNotFoundException;
 use Grimoire\Test\Helpers\Model\ApplicationModel;
 
 class ModelTest extends AbstractGrimoireTestCase
