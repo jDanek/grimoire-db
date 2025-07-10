@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Grimoire\Model;
 
+use Grimoire\Exception\RowNotFoundException;
 use Grimoire\Result\Result;
 use Grimoire\Result\Row;
 

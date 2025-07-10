@@ -11,6 +11,8 @@ use Grimoire\Result\Row;
 
 /**
  * Methods for NativeModel from ModelQueryBuilder
+ * @mixin ModelQueryBuilder
+ *
  * @method Result all(string|array|null ...$columns)
  * @method Result where(array $conditions, string|array|null ...$columns)
  * @method Result findMany(array $ids, string|array|null ...$columns)
@@ -33,14 +35,14 @@ abstract class NativeModel
 {
     /** @var ConnectionResolverInterface */
     private static $resolver;
+    /** @var ModelQueryBuilder */
+    private $queryBuilder = null;
     /** @var string */
     protected $connectionName = null;
     /** @var string */
     protected $table;
     /** @var string */
     protected $primaryColumn;
-    /** @var array methods that can be called statically and will be chained */
-    protected $scopeMethods = [];
 
     public function __construct(
         ?string $table = null,
@@ -68,7 +70,7 @@ abstract class NativeModel
         }
 
         // if method is scope method on model
-        if (method_exists($instance, $method) && in_array($method, $instance->scopeMethods)) {
+        if (method_exists($instance, $method) && in_array($method, $instance->getScopeMethods())) {
             // call method on model and pass QueryBuilder
             return $instance->$method($queryBuilder, ...$parameters);
         }
@@ -87,16 +89,18 @@ abstract class NativeModel
      */
     public function __call($method, $parameters)
     {
-        $queryBuilder = $this->newQuery();
+        if ($this->queryBuilder === null) {
+            $this->queryBuilder = $this->newQuery();
+        }
 
-        if (method_exists($queryBuilder, $method)) {
-            return $queryBuilder->$method(...$parameters);
+        if (method_exists($this->queryBuilder, $method)) {
+            return $this->queryBuilder->$method(...$parameters);
         }
 
         // try to find scope{Method} method (Laravel style)
         $scopeMethodName = 'scope' . ucfirst($method);
         if (method_exists(static::class, $scopeMethodName)) {
-            return $this->$scopeMethodName($queryBuilder, ...$parameters);
+            return $this->$scopeMethodName($this->queryBuilder, ...$parameters);
         }
 
         throw new \BadMethodCallException(sprintf(
@@ -195,10 +199,19 @@ abstract class NativeModel
     }
 
     /**
-     * Get scope methods
+     * Get auto-discovered scope methods
      */
     public function getScopeMethods(): array
     {
-        return $this->scopeMethods;
+        static $scopes = null;
+        if ($scopes === null) {
+            $scopes = [];
+            foreach (get_class_methods($this) as $method) {
+                if (strlen($method) >= 5 && substr($method, 0, 5) === 'scope') {
+                    $scopes[] = lcfirst(substr($method, 5));
+                }
+            }
+        }
+        return $scopes;
     }
 }
