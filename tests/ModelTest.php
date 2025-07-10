@@ -31,7 +31,7 @@ class ModelTest extends AbstractGrimoireTestCase
 
     public function testAll()
     {
-        $apps = ApplicationModel::proxy()->all();
+        $apps = ApplicationModel::all();
 
         $expected = [
             'Adminer' => [
@@ -88,7 +88,7 @@ class ModelTest extends AbstractGrimoireTestCase
 
     public function testAllWithArgs()
     {
-        $apps = ApplicationModel::proxy()->all('title', 'author_id', 'slogan');
+        $apps = ApplicationModel::all('title', 'author_id', 'slogan');
 
         $expected = [
             'Adminer' => [
@@ -136,7 +136,7 @@ class ModelTest extends AbstractGrimoireTestCase
 
     public function testWhere(): void
     {
-        $application = ApplicationModel::proxy()->where(['author_id' => 11]);
+        $application = ApplicationModel::where(['author_id' => 11]);
 
         $data = [];
         foreach ($application as $val) {
@@ -151,7 +151,7 @@ class ModelTest extends AbstractGrimoireTestCase
 
     public function testFindMany(): void
     {
-        $application = ApplicationModel::proxy()->findMany([1, 2]);
+        $application = ApplicationModel::findMany([1, 2]);
 
         $data = [];
         foreach ($application as $val) {
@@ -166,7 +166,7 @@ class ModelTest extends AbstractGrimoireTestCase
 
     public function testFind(): void
     {
-        $application = ApplicationModel::proxy()->find(1);
+        $application = ApplicationModel::find(1);
 
         $data = [];
         foreach ($application as $key => $val) {
@@ -185,7 +185,7 @@ class ModelTest extends AbstractGrimoireTestCase
 
     public function testFindOrFail(): void
     {
-        $application = ApplicationModel::proxy()->findOrFail(1);
+        $application = ApplicationModel::findOrFail(1);
 
         $data = [];
         foreach ($application as $key => $val) {
@@ -203,12 +203,12 @@ class ModelTest extends AbstractGrimoireTestCase
 
 
         $this->expectException(RowNotFoundException::class);
-        $application = ApplicationModel::proxy()->findOrFail(999);
+        $application = ApplicationModel::findOrFail(999);
     }
 
     public function testFindOr(): void
     {
-        $application = ApplicationModel::proxy()->findOr(1);
+        $application = ApplicationModel::findOr(1);
 
         $data = [];
         foreach ($application as $key => $val) {
@@ -227,14 +227,14 @@ class ModelTest extends AbstractGrimoireTestCase
 
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Record not found, callback called');
-        $application = ApplicationModel::proxy()->findOr(999, function ($db) {
+        $application = ApplicationModel::findOr(999, function ($db) {
             throw new \Exception('Record not found, callback called');
         });
     }
 
     public function testFirst(): void
     {
-        $application = ApplicationModel::proxy()->first();
+        $application = ApplicationModel::first();
         $this->assertEquals('Adminer', $application['title']);
     }
 
@@ -244,7 +244,7 @@ class ModelTest extends AbstractGrimoireTestCase
 
         $this->expectException(RowNotFoundException::class);
         $this->expectExceptionMessage('Row not found in table \'application\'');
-        $application = ApplicationModel::proxy()->firstOrFail();
+        $application = ApplicationModel::firstOrFail();
     }
 
     public function testFirstOr(): void
@@ -253,7 +253,7 @@ class ModelTest extends AbstractGrimoireTestCase
 
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Record not found, callback called');
-        $application = ApplicationModel::proxy()->firstOr(function ($db) {
+        $application = ApplicationModel::firstOr(function ($db) {
             throw new \Exception('Record not found, callback called');
         });
     }
@@ -262,7 +262,7 @@ class ModelTest extends AbstractGrimoireTestCase
     {
         $this->db->table('application')->delete();
 
-        $application = ApplicationModel::proxy()->firstOrCreate(['id' => 1], [
+        $application = ApplicationModel::firstOrCreate(['id' => 1], [
             'id' => '1',
             'author_id' => '11',
             'maintainer_id' => '11',
@@ -289,7 +289,7 @@ class ModelTest extends AbstractGrimoireTestCase
 
     public function testLast(): void
     {
-        $application = ApplicationModel::proxy()->last();
+        $application = ApplicationModel::last();
         $this->assertEquals('Dibi', $application['title']);
     }
 
@@ -299,7 +299,7 @@ class ModelTest extends AbstractGrimoireTestCase
 
         $this->expectException(RowNotFoundException::class);
         $this->expectExceptionMessage('Row not found in table \'application\'');
-        $application = ApplicationModel::proxy()->lastOrFail();
+        $application = ApplicationModel::lastOrFail();
     }
 
     public function testLastOr(): void
@@ -308,7 +308,7 @@ class ModelTest extends AbstractGrimoireTestCase
 
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Record not found, callback called');
-        $application = ApplicationModel::proxy()->lastOr(function ($db) {
+        $application = ApplicationModel::lastOr(function ($db) {
             throw new \Exception('Record not found, callback called');
         });
     }
@@ -316,7 +316,7 @@ class ModelTest extends AbstractGrimoireTestCase
     public function testUpdateOrCreate()
     {
         // update
-        $application = ApplicationModel::proxy()->updateOrCreate(
+        $application = ApplicationModel::updateOrCreate(
             ['id' => 1], // condition
             ['title' => 'renimdA'], // update
             [
@@ -336,7 +336,7 @@ class ModelTest extends AbstractGrimoireTestCase
 
         // create
         $this->db->table('application')->delete();
-        $application = ApplicationModel::proxy()->updateOrCreate(
+        $application = ApplicationModel::updateOrCreate(
             ['id' => 99], // condition
             ['title' => 'renimdA'], // update
             [

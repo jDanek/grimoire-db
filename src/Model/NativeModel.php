@@ -8,12 +8,29 @@ use Grimoire\ConnectionResolverInterface;
 use Grimoire\Database;
 use Grimoire\Result\Result;
 use Grimoire\Result\Row;
-use Grimoire\Util\StaticProxyTrait;
 
+/**
+ * Methods for NativeModel from ModelQueryBuilder
+ * @method Result all(string|array|null ...$columns)
+ * @method Result where(array $conditions, string|array|null ...$columns)
+ * @method Result findMany(array $ids, string|array|null ...$columns)
+ * @method Row|null find(int|string $id, string|array|null ...$columns)
+ * @method Row findOrFail(int|string $id, string|array|null ...$columns)
+ * @method Row|mixed|null findOr(int|string $id, array|\Closure $columns, \Closure|null $callback = null)
+ * @method Row|null first(string|array|null ...$columns)
+ * @method Row firstOrFail(string|array|null ...$columns)
+ * @method Row|mixed|null firstOr(array|\Closure $columns, \Closure|null $callback = null)
+ * @method Row firstOrCreate(array $conditions, array $createData)
+ * @method Row|null last(string|array|null ...$columns)
+ * @method Row lastOrFail(string|array|null ...$columns)
+ * @method Row|mixed|null lastOr(array|\Closure $columns, \Closure|null $callback = null)
+ * @method mixed updateOrCreate(array $conditions, array $updateData, array $insertData, int|null $limit = null)
+ * @method false|Row|int insert(array ...$rows)
+ * @method false|int update(array $conditions, array ...$rows)
+ * @method false|int delete(array $conditions)
+ */
 abstract class NativeModel
 {
-    use StaticProxyTrait;
-
     /** @var ConnectionResolverInterface */
     private static $resolver;
     /** @var string */
@@ -22,6 +39,8 @@ abstract class NativeModel
     protected $table;
     /** @var string */
     protected $primaryColumn;
+    /** @var array methods that can be called statically and will be chained */
+    protected $scopeMethods = [];
 
     public function __construct(
         ?string $table = null,
@@ -33,6 +52,50 @@ abstract class NativeModel
 
         $this->table = $table ?? $this->getTableName();
         $this->primaryColumn = $primaryColumn ?? $this->getConnection()->getStructure()->getPrimary($this->getTableName());
+    }
+
+    /**
+     * Handle dynamic static method calls into the model.
+     */
+    public static function __callStatic($method, $parameters)
+    {
+        $instance = new static;
+        $queryBuilder = $instance->newQuery();
+
+        // if method exists on query builder, call it
+        if (method_exists($queryBuilder, $method)) {
+            return $queryBuilder->$method(...$parameters);
+        }
+
+        // if method is scope method on model
+        if (method_exists($instance, $method) && in_array($method, $instance->scopeMethods)) {
+            // call method on model and pass QueryBuilder
+            return $instance->$method($queryBuilder, ...$parameters);
+        }
+
+        // try to find scope{Method} method (Laravel style)
+        $scopeMethod = 'scope' . ucfirst($method);
+        if (method_exists($instance, $scopeMethod)) {
+            return $instance->$scopeMethod($queryBuilder, ...$parameters);
+        }
+
+        throw new \BadMethodCallException("Method '{$method}' does not exist on model or query builder.");
+    }
+
+    /**
+     * Start a new query on the model's table.
+     */
+    public static function query(): ModelQueryBuilder
+    {
+        return (new static)->newQuery();
+    }
+
+    /**
+     * Get a new query builder for the model's table.
+     */
+    public function newQuery(): ModelQueryBuilder
+    {
+        return new ModelQueryBuilder($this);
     }
 
     /**
@@ -94,284 +157,26 @@ abstract class NativeModel
     }
 
     /**
-     * Return table instance
+     * Get table name
      */
-    public function table(): Result
-    {
-        if ($this->table === null) {
-            throw new \InvalidArgumentException('Table name is not set');
-        }
-        return $this->getConnection()->table($this->getTableName());
-    }
-
     public function getTableName(): string
     {
         return $this->table;
     }
 
     /**
-     * @param string|array|null $columns for example ['column1', 'column2'], 'column, MD5(column) AS column_md5', empty string to reset previously set columns
-     * @return Result
+     * Get primary column name
      */
-    public function all(...$columns): Result
+    public function getPrimaryColumn(): string
     {
-        return $this->table()
-            ->select(...$columns);
+        return $this->primaryColumn;
     }
 
     /**
-     * Get table data
-     *
-     * Supported $conditions formats:
-     * -------------------------
-     * - ['column_name = ? AND another > ?', [param1, ...]]
-     * - ['column_name', instance of Result class]
-     * - ['column_name', [param1, param2, ...]]
-     * - ['column_name' => 'param1', ...]
-     * - ['column_name > ?' => 'param1', 'another' => 45, ...]
-     * - ['column_name' => ['param1', ...]]
-     *
-     * @param array $conditions (['condition', ['value', ...]]) passed to {@see Result::where()}
+     * Get scope methods
      */
-    public function where(array $conditions, ...$columns): Result
+    public function getScopeMethods(): array
     {
-        return $this->table()
-            ->select(...$columns)
-            ->where($conditions);
+        return $this->scopeMethods;
     }
-
-    /**
-     * @param array $ids array of ids string or int
-     */
-    public function findMany(array $ids, ...$columns): Result
-    {
-        return $this->where([$this->primaryColumn => $ids], ...$columns);
-    }
-
-    /**
-     * @param int|string $id get single row by id
-     * @throws \InvalidArgumentException|\Throwable
-     */
-    public function find($id, ...$columns): ?Row
-    {
-        if (is_array($id)) {
-            throw new \InvalidArgumentException('The value array is not supported, use the findMany($ids) method for the array.');
-        }
-
-        $result = $this->findMany([$id], ...$columns);
-
-        if (($r = $result->fetch()) instanceof Row) {
-            return $r;
-        }
-
-        return null;
-    }
-
-    /**
-     * @param string|int $id
-     * @throws RowNotFoundException|\Throwable
-     */
-    public function findOrFail($id, ...$columns): Row
-    {
-        $row = $this->find($id, ...$columns);
-
-        if ($row instanceof Row) {
-            return $row;
-        }
-
-        throw new RowNotFoundException($this->getTableName(), $id);
-    }
-
-    /**
-     * @param int|string $id
-     * @param array|\Closure $columns
-     * @param \Closure|null $callback first argument is Database instance
-     * @return Row|mixed|null
-     * @throws \Throwable
-     */
-    public function findOr($id, $columns = [], ?\Closure $callback = null)
-    {
-        if ($columns instanceof \Closure) {
-            $callback = $columns;
-            $columns = [];
-        }
-
-        if (!is_null($row = $this->find($id, $columns ?? []))) {
-            return $row;
-        }
-
-        return $callback($this->getConnection());
-    }
-
-
-    /**
-     * @throws \Throwable
-     */
-    public function first(...$columns): ?Row
-    {
-        $row = $this->all(...$columns)
-            ->orderBy($this->primaryColumn . ' ASC')
-            ->limit(1);
-
-        if (($r = $row->fetch()) instanceof Row) {
-            return $r;
-        }
-
-        return null;
-    }
-
-    /**
-     * @throws RowNotFoundException|\Throwable
-     */
-    public function firstOrFail(...$columns): ?Row
-    {
-        $row = $this->first(...$columns);
-
-        if ($row instanceof Row) {
-            return $row;
-        }
-
-        throw new RowNotFoundException($this->getTableName());
-    }
-
-    /**
-     * @param array|\Closure $columns
-     * @param \Closure|null $callback first argument is Database instance
-     * @return Row|mixed|null
-     * @throws \Throwable
-     */
-    public function firstOr($columns = [], ?\Closure $callback = null)
-    {
-        if ($columns instanceof \Closure) {
-            $callback = $columns;
-            $columns = [];
-        }
-
-        if (!is_null($row = $this->first($columns ?? []))) {
-            return $row;
-        }
-
-        return $callback($this->getConnection());
-    }
-
-
-    /**
-     * @throws \Throwable
-     */
-    public function firstOrCreate(array $conditions, array $createData): Row
-    {
-        if (empty($createData)) {
-            throw new \InvalidArgumentException('Argument $createData cannot be empty.');
-        }
-
-        $result = $this->where($conditions)
-            ->orderBy($this->primaryColumn . ' ASC')
-            ->limit(1);
-
-        if (($r = $result->fetch()) instanceof Row) {
-            return $r;
-        }
-
-        return $this->table()->insert($createData);
-    }
-
-    /**
-     * @throws \Throwable
-     */
-    public function last(...$columns): ?Row
-    {
-        $row = $this->all(...$columns)
-            ->orderBy($this->primaryColumn . ' DESC')
-            ->limit(1);
-
-        if (($r = $row->fetch()) instanceof Row) {
-            return $r;
-        }
-
-        return null;
-    }
-
-    /**
-     * @throws RowNotFoundException|\Throwable
-     */
-    public function lastOrFail(...$columns): ?Row
-    {
-        $row = $this->last(...$columns);
-
-        if ($row instanceof Row) {
-            return $row;
-        }
-
-        throw new RowNotFoundException($this->getTableName());
-    }
-
-    /**
-     * @param array|\Closure $columns
-     * @param \Closure|null $callback first argument is Database instance
-     * @return Row|mixed|null
-     * @throws \Throwable
-     */
-    public function lastOr($columns = [], ?\Closure $callback = null)
-    {
-        if ($columns instanceof \Closure) {
-            $callback = $columns;
-            $columns = [];
-        }
-
-        if (!is_null($row = $this->last($columns ?? []))) {
-            return $row;
-        }
-
-        return $callback($this->getConnection());
-    }
-
-    /**
-     * @throws \Throwable
-     */
-    public function updateOrCreate(array $conditions, array $updateData, array $insertData, ?int $limit = null)
-    {
-        if (empty($updateData) || empty($insertData)) {
-            throw new \InvalidArgumentException('Argument $updateData and $insertData cannot be empty.');
-        }
-
-        $result = $this->where($conditions);
-
-        if ($limit !== null) {
-            $result->limit(max(1, $limit));
-        }
-
-        if (($r = $result->fetch()) instanceof Row) {
-            return $r->update($updateData);
-        }
-
-        return $this->table()->insert($insertData);
-    }
-
-    /**
-     * @return false|Row|int
-     * @see Result::insert
-     */
-    public function insert(...$rows)
-    {
-        return $this->table()->insert(...$rows);
-    }
-
-    /**
-     * @return false|int
-     * @throws \Throwable
-     */
-    public function update(array $conditions, array $data)
-    {
-        return $this->where($conditions)->update($data);
-    }
-
-    /**
-     * @param array $conditions
-     * @return false|int
-     */
-    public function delete(array $conditions)
-    {
-        return $this->where($conditions)->delete();
-    }
-
 }
