@@ -3,6 +3,7 @@
 namespace Grimoire\Test;
 
 use Grimoire\Database;
+use Grimoire\Exception\NamedQueryNotFoundException;
 
 class NamedQueriesTest extends AbstractGrimoireTestCase
 {
@@ -96,7 +97,7 @@ class NamedQueriesTest extends AbstractGrimoireTestCase
 
     public function testNamedQueriesNotExists()
     {
-        $this->expectException(\OutOfBoundsException::class);
+        $this->expectException(NamedQueryNotFoundException::class);
         $this->expectExceptionMessage('Named query \'named_query_not_exists\' not found.');
         $this->db->runNamedQuery('named_query_not_exists');
     }
