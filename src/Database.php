@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Grimoire;
 
+use Grimoire\Exception\MissingQueryParameterException;
+use Grimoire\Exception\NamedQueryNotFoundException;
 use Grimoire\Result\Result;
 use Grimoire\Result\Row;
 use Grimoire\Structure\StructureInterface;
@@ -130,30 +132,25 @@ class Database
         $this->namedQueries[$name] = ['callback' => $queryCallback, 'required_params' => $requiredParams];
     }
 
+    /**
+     * @throws NamedQueryNotFoundException|MissingQueryParameterException
+     */
     public function runNamedQuery(string $name, array $args = [])
     {
         if (!isset($this->namedQueries[$name])) {
-            throw new \OutOfBoundsException("Named query '" . $name . "' not found.");
+            throw new NamedQueryNotFoundException("Named query '" . $name . "' not found.");
         }
 
+        // validation of required parameters
         $named = $this->namedQueries[$name];
         $requiredParams = $named['required_params'];
-        $query = $named['callback'];
-
-        // validation of required parameters
         foreach ($requiredParams as $param) {
             if (!array_key_exists($param, $args)) {
-                throw new \InvalidArgumentException("Missing required parameter: '" . $param . "'");
+                throw new MissingQueryParameterException("Missing required parameter: '" . $param . "'");
             }
         }
 
-        // map arguments
-        $mappedArgs = [];
-        foreach ($args as $value) {
-            $mappedArgs[] = $value;
-        }
-
-        return call_user_func($query, $this, ...$mappedArgs);
+        return call_user_func($named['callback'], $this, ...array_values($args));
     }
 
     public function removeNamedQuery(string $name)
