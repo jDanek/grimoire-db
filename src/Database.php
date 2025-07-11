@@ -213,14 +213,22 @@ class Database
      * @param Row|callback $callback
      * @param ... $callback parameters for the callback
      */
-    static function then($callback)
+    public static function then($callback)
     {
         // static because it uses ob_start() which creates a global state
         if (self::$queue !== null) {
             self::$queue[] = func_get_args();
         } else { // top level call
             self::$queue = [func_get_args()];
-            ob_start([self::class, 'out'], 2); // 2 - minimal value, 1 means 4096 before PHP 5.4
+
+            ob_start(function ($string) {
+                if (self::$queue === null) {
+                    return $string;
+                }
+                self::$queue[] = $string;
+                return '';
+            }, 2); // 2 - minimal value, 1 means 4096 before PHP 5.4
+
             while (self::$queue) {
                 $original = self::$queue;
                 self::$queue = []; // queue is refilled in self::out() and self::then() calls from callbacks
@@ -238,15 +246,5 @@ class Database
             // mark top level call for the next time
             self::$queue = null;
         }
-    }
-
-    /** @access protected must be public because it is called by ob_start() */
-    static function out(string $string): string
-    {
-        if (self::$queue === null) {
-            return $string;
-        }
-        self::$queue[] = $string;
-        return '';
     }
 }
