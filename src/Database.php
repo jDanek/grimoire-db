@@ -209,18 +209,22 @@ class Database
 
     /**
      * Deferred call
-     *
-     * @param Row|callback $callback
-     * @param ... $callback parameters for the callback
+     * @param mixed ...$parameters parameters for the callback
      */
-    public static function then($callback)
+    public static function then(callable $callback, ...$parameters)
     {
-        // static because it uses ob_start() which creates a global state
-        if (self::$queue !== null) {
-            self::$queue[] = func_get_args();
-        } else { // top level call
-            self::$queue = [func_get_args()];
+        $isTopLevel = (self::$queue === null);
 
+        // Initialize queue if needed
+        if ($isTopLevel) {
+            self::$queue = [];
+        }
+
+        // Add callback to queue
+        self::$queue[] = array_merge([$callback], $parameters);
+
+        // Process queue only for top level call
+        if ($isTopLevel) {
             ob_start(function ($string) {
                 if (self::$queue === null) {
                     return $string;
@@ -232,16 +236,18 @@ class Database
             while (self::$queue) {
                 $original = self::$queue;
                 self::$queue = []; // queue is refilled in self::out() and self::then() calls from callbacks
-                foreach ($original as $results) {
-                    if (!is_array($results)) {
-                        // self::out() is called by ob_start() so that it can print or requeue the string
-                        echo $results;
+
+                foreach ($original as $result) {
+                    if (is_array($result)) {
+                        $callback = array_shift($result);
+                        call_user_func_array($callback, $result);
                     } else {
-                        $callback = array_pop($results);
-                        call_user_func_array($callback, $results);
+                        // self::out() is called by ob_start() so that it can print or requeue the string
+                        echo $result;
                     }
                 }
             }
+
             ob_end_flush();
             // mark top level call for the next time
             self::$queue = null;

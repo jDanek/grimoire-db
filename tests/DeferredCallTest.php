@@ -30,11 +30,11 @@ class DeferredCallTest extends AbstractGrimoireTestCase
                 ->orderBy("application_id, tag_id")
                 ->thenForeach(function ($application_tag) use (&$data) {
                     Database::then(
-                        $application_tag->ref('application'),
-                        $application_tag->ref('tag'),
                         function ($application, $tag) use (&$data) {
                             $data['tags'][] = $application['title'] . ': ' . $tag['name'];
-                        }
+                        },
+                        $application_tag->ref('application'),
+                        $application_tag->ref('tag')
                     );
                 });
         });

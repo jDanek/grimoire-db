@@ -934,7 +934,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
      */
     function then(callable $callback): void
     {
-        Database::then($this, $callback);
+        Database::then($callback, $this);
     }
 
     /**
@@ -945,7 +945,7 @@ class Result implements \Iterator, \ArrayAccess, \Countable, \JsonSerializable
     public function thenForeach(callable $callback): void
     {
         $foreach = new ThenForeachHelper($callback);
-        Database::then($this, [$foreach, '__invoke']);
+        Database::then([$foreach, '__invoke'], $this);
     }
 
     public function access(string $key, bool $delete = false): bool
