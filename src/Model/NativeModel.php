@@ -202,4 +202,28 @@ abstract class NativeModel
         }
         return $scopesPerClass[$class];
     }
+
+    /**
+     * @see Database::beginTransaction
+     */
+    public static function beginTransaction(): void
+    {
+        static::resolveConnection()->beginTransaction();
+    }
+
+    /**
+     * @see Database::commit
+     */
+    public static function commit(): void
+    {
+        static::resolveConnection()->commit();
+    }
+
+    /**
+     * @see Database::rollBack
+     */
+    public static function rollBack(): void
+    {
+        static::resolveConnection()->rollBack();
+    }
 }
