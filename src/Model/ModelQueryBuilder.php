@@ -306,6 +306,16 @@ class ModelQueryBuilder
     }
 
     /**
+     * Alias for {@see insert()}
+     * @param array ...$rows
+     * @return false|Row|int
+     */
+    public function create(...$rows)
+    {
+        return $this->insert(...$rows);
+    }
+
+    /**
      * @param array ...$rows
      * @return false|Row|int
      */
