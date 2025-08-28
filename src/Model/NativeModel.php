@@ -28,6 +28,7 @@ use Grimoire\Result\Row;
  * @method static Row|mixed|null lastOr(array|\Closure $columns, \Closure|null $callback = null)
  * @method static mixed updateOrCreate(array $conditions, array $updateData, array $insertData, int|null $limit = null)
  * @method static false|Row|int insert(array ...$rows)
+ * @method static false|Row|int create(array ...$rows) alias for insert()
  * @method static false|int update(array $conditions, array ...$rows)
  * @method static false|int delete(array $conditions)
  */
